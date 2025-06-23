@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Database, Plus } from "lucide-react";
 import SavedConnectionsList from "@/components/saved_connections_list";
 import RecentConnectionsList from "@/components/recent_connections_list";
 import SchemaList from "@/components/schema_list";
@@ -17,61 +19,39 @@ export default function Sidebar() {
   const isConnectionsPage = pathname === "/connections";
 
   return (
-    <aside
-      className="p-4"
-      style={{
-        background: "#fff",
-        height: "100%",
-        borderRight: "1px solid #e5e5e5",
-      }}
-    >
-      <header
-        className="mb-6 pb-4 border-b"
-        style={{
-          borderBottom: "1px solid #e5e5e5",
-        }}
-      >
-        <h4 className="scroll-m-20 text-center text-balance flex items-center gap-2 justify-center text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
-          {/* <span role="img" aria-label="elephant">
-            🐘
-          </span> */}
-          <span className="truncate max-w-full">postgresql.fyi</span>
-        </h4>
-      </header>
-      <section>
+    <aside className="h-full bg-card border-r border-border flex flex-col">
+      <header className="p-6 border-b border-border">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Database className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">PostgreSQL</h1>
+              <p className="text-sm text-muted-foreground">Database Manager</p>
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
         <Button
-          className="w-full mt-2 bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 btn-hover-lift"
           onClick={handleConnect}
         >
-          {/* SVG plus icon with white color */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            style={{ color: "white" }}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New connection
+          <Plus className="h-4 w-4" />
+          New Connection
         </Button>
+      </header>
+      
+      <div className="flex-1 overflow-auto">
         {isConnectionsPage ? (
-          <>
-            <div className="mt-6">
-              <SavedConnectionsList />
-            </div>
-            <div className="mt-6">
-              <RecentConnectionsList />
-            </div>
-          </>
-        ) : (
-          <div className="mt-6">
-            <SchemaList />
+          <div className="space-y-6">
+            <SavedConnectionsList />
+            <RecentConnectionsList />
           </div>
+        ) : (
+          <SchemaList />
         )}
-      </section>
+      </div>
     </aside>
   );
 }

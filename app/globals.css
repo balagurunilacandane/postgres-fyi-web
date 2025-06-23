@@ -2,20 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -42,8 +28,9 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -78,25 +65,30 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Custom scrollbar */
+/* Enhanced scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  @apply bg-muted/30;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  @apply bg-muted-foreground/30 rounded-md;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  @apply bg-muted-foreground/50;
+}
+
+::-webkit-scrollbar-corner {
+  @apply bg-muted/30;
 }
 
 /* Smooth scroll */
@@ -106,6 +98,92 @@ html {
 
 /* Enhanced focus styles */
 *:focus-visible {
-  outline: 2px solid hsl(var(--primary));
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Glass morphism effect */
+.glass {
+  @apply bg-background/80 backdrop-blur-md border border-border/50;
+}
+
+/* Improved table styling */
+.table-container {
+  @apply border border-border rounded-lg overflow-hidden bg-card;
+}
+
+.table-container table {
+  @apply w-full;
+}
+
+.table-container th {
+  @apply bg-muted/50 font-semibold text-left p-3 border-b border-border;
+}
+
+.table-container td {
+  @apply p-3 border-b border-border/50;
+}
+
+.table-container tr:hover {
+  @apply bg-muted/30;
+}
+
+/* Monaco editor theme integration */
+.monaco-editor {
+  @apply rounded-md;
+}
+
+.monaco-editor .margin {
+  @apply bg-muted/20;
+}
+
+/* Enhanced button hover effects */
+.btn-hover-lift {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.btn-hover-lift:hover {
+  @apply transform -translate-y-0.5 shadow-lg;
+}
+
+/* Status indicators */
+.status-indicator {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.status-indicator.success {
+  @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+}
+
+.status-indicator.error {
+  @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+}
+
+.status-indicator.warning {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+}
+
+.status-indicator.info {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
 }

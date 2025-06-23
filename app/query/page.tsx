@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { SqlEditor } from "@/components/sql-editor";
 import {
   ColumnDef,
   useReactTable,
@@ -14,13 +14,15 @@ import {
   VisibilityState,
   flexRender,
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Copy, Download, Filter, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Table,
@@ -35,6 +37,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import api from "@/utils/axiosInstance";
 
 // Types for table fields and rows
@@ -50,62 +54,70 @@ function generateColumnsFromFields(fields: TableField[]): ColumnDef<TableRow>[] 
       header: field.name.charAt(0).toUpperCase() + field.name.slice(1),
       cell: ({ row }: { row: { original: TableRow } }) => {
         const value = row.original[field.name];
-        // Render objects as JSON string for display
         if (typeof value === "object" && value !== null) {
           return (
-            <pre className="whitespace-pre-wrap break-all text-xs">
+            <pre className="whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded">
               {JSON.stringify(value, null, 2)}
             </pre>
           );
         }
-        return <div>{value !== undefined ? String(value) : ""}</div>;
+        return (
+          <div className="max-w-xs truncate" title={String(value || "")}>
+            {value !== undefined ? String(value) : ""}
+          </div>
+        );
       },
     })),
     {
       id: "actions",
       enableHiding: false,
-      header: "Action",
+      header: "Actions",
       cell: ({ row }: { row: { original: TableRow } }) => (
-        <button
-          type="button"
-          className="h-8 w-8 p-0 flex items-center justify-center text-gray-500 hover:text-blue-600 cursor-pointer"
-          title="Copy row"
-          aria-label="Copy row"
-          onClick={() =>
-            navigator.clipboard.writeText(JSON.stringify(row.original, null, 2))
-          }
-        >
-          {/* Copy SVG icon */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-          </svg>
-          <span className="sr-only">Copy row</span>
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() =>
+                navigator.clipboard.writeText(JSON.stringify(row.original, null, 2))
+              }
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Row
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                const csv = Object.values(row.original).join(",");
+                navigator.clipboard.writeText(csv);
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Copy as CSV
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
 }
 
 export default function QueryPage() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState("SELECT * FROM information_schema.tables LIMIT 10;");
   const [result, setResult] = useState<TableRow[]>([]);
   const [fields, setFields] = useState<TableField[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState("");
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [globalFilter, setGlobalFilter] = useState("");
   const LIMIT = 50;
   const [offset, setOffset] = useState(0);
 
@@ -119,9 +131,10 @@ export default function QueryPage() {
           ? localStorage.getItem("current_conn_id")
           : null;
 
-      if (!connectionId || !query) return;
+      if (!connectionId || !query.trim()) return;
 
       setLoading(true);
+      setError("");
       try {
         const pagedQuery = `${query.trim().replace(/;*$/, "")} LIMIT ${LIMIT} OFFSET ${append ? offset : 0}`;
         const response = await api.post("/query", {
@@ -136,7 +149,21 @@ export default function QueryPage() {
         }
         setFields(apiData.fields || []);
         setHasMore((apiData.rows?.length || 0) === LIMIT);
-      } catch {
+      } catch (err) {
+        const errorMessage = 
+          typeof err === "object" &&
+          err !== null &&
+          "response" in err &&
+          err.response &&
+          typeof err.response === "object" &&
+          "data" in err.response &&
+          err.response.data &&
+          typeof err.response.data === "object" &&
+          "message" in err.response.data
+            ? (err.response.data as { message?: string }).message
+            : "Failed to execute query";
+        
+        setError(errorMessage || "Failed to execute query");
         if (!append) {
           setResult([]);
           setFields([]);
@@ -152,6 +179,7 @@ export default function QueryPage() {
   // Run query (reset offset)
   const handleRunQuery = async () => {
     setOffset(0);
+    setGlobalFilter("");
     await fetchQueryData(false);
   };
 
@@ -184,8 +212,7 @@ export default function QueryPage() {
   useEffect(() => {
     if (offset === 0) return;
     fetchQueryData(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset]);
+  }, [offset, fetchQueryData]);
 
   const columns = generateColumnsFromFields(fields);
 
@@ -199,71 +226,122 @@ export default function QueryPage() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: "includesString",
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      globalFilter,
     },
   });
 
+  const exportToCSV = () => {
+    if (result.length === 0) return;
+    
+    const headers = fields.map(field => field.name).join(",");
+    const rows = result.map(row => 
+      fields.map(field => {
+        const value = row[field.name];
+        if (typeof value === "string" && value.includes(",")) {
+          return `"${value}"`;
+        }
+        return value;
+      }).join(",")
+    ).join("\n");
+    
+    const csv = `${headers}\n${rows}`;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `query-results-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="h-screen w-full overflow-auto">
+    <div className="h-screen w-full bg-background">
       {/* Desktop: Resizable vertical panels */}
       <div className="hidden md:block h-full w-full">
         <ResizablePanelGroup
           direction="vertical"
-          className="min-h-[200px] h-screen w-full rounded-lg border"
+          className="h-screen w-full"
         >
-          <ResizablePanel defaultSize={30} minSize={15} maxSize={70}>
-            <div className="h-full flex flex-col p-4 md:p-6">
-              <h1 className="text-xl font-bold mb-2">Query Editor</h1>
-              <Textarea
-                className="flex-1 mb-4 resize-none"
-                placeholder="Write your SQL query here..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                rows={6}
-              />
-              <div>
-                <Button onClick={handleRunQuery} disabled={loading}>
-                  {loading ? "Running..." : "Run Query"}
-                </Button>
+          <ResizablePanel defaultSize={35} minSize={20} maxSize={60}>
+            <div className="h-full flex flex-col p-6 bg-card border-b border-border">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold text-foreground">Query Editor</h1>
+                <div className="flex items-center gap-2">
+                  {result.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportToCSV}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export CSV
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1">
+                <SqlEditor
+                  value={query}
+                  onChange={setQuery}
+                  onRun={handleRunQuery}
+                  loading={loading}
+                  height="100%"
+                />
               </div>
             </div>
           </ResizablePanel>
-          <ResizableHandle />
-          <ResizablePanel defaultSize={70} minSize={30} maxSize={85}>
-            <div className="h-full p-4 md:p-6 flex flex-col">
-              <h2 className="text-lg font-semibold mb-2">Result</h2>
+          <ResizableHandle className="h-1 bg-border hover:bg-border/80 transition-colors" />
+          <ResizablePanel defaultSize={65} minSize={40} maxSize={80}>
+            <div className="h-full p-6 flex flex-col bg-background">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-foreground">Results</h2>
+                {result.length > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    {result.length} row{result.length !== 1 ? "s" : ""}
+                    {hasMore && " (more available)"}
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               {result.length > 0 ? (
-                <div className="w-full flex-1 flex flex-col">
-                  <div className="flex flex-col md:flex-row md:items-center py-4 gap-2">
-                    {table.getColumn("email") && (
-                      <Input
-                        placeholder="Filter emails..."
-                        value={
-                          (table.getColumn("email")?.getFilterValue() as string) ??
-                          ""
-                        }
-                        onChange={(event) =>
-                          table.getColumn("email")?.setFilterValue(event.target.value)
-                        }
-                        className="max-w-sm"
-                      />
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                          Columns <ChevronDown />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {table
-                          .getAllColumns()
-                          .filter((column) => column.getCanHide())
-                          .map((column) => {
-                            return (
+                <div className="flex-1 flex flex-col space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <Input
+                      placeholder="Search all columns..."
+                      value={globalFilter ?? ""}
+                      onChange={(event) => setGlobalFilter(event.target.value)}
+                      className="max-w-sm"
+                    />
+                    <div className="flex items-center gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <Filter className="h-4 w-4" />
+                            Columns
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {table
+                            .getAllColumns()
+                            .filter((column) => column.getCanHide())
+                            .map((column) => (
                               <DropdownMenuCheckboxItem
                                 key={column.id}
                                 className="capitalize"
@@ -274,21 +352,21 @@ export default function QueryPage() {
                               >
                                 {column.id}
                               </DropdownMenuCheckboxItem>
-                            );
-                          })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                   <div
                     ref={tableContainerRef}
-                    className="rounded-md border flex-1 overflow-auto max-h-[60vh]"
+                    className="flex-1 overflow-auto table-container"
                   >
                     <Table>
                       <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                           <TableRow key={headerGroup.id}>
                             {headerGroup.headers.map((header) => (
-                              <TableHead key={header.id}>
+                              <TableHead key={header.id} className="font-semibold">
                                 {header.isPlaceholder
                                   ? null
                                   : flexRender(
@@ -306,16 +384,14 @@ export default function QueryPage() {
                             <TableRow
                               key={row.id}
                               data-state={row.getIsSelected() && "selected"}
-                              className="h-16"
+                              className="hover:bg-muted/50 transition-colors"
                             >
                               {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id} className="p-2 align-top">
-                                  <div className="max-h-32 overflow-auto">
-                                    {flexRender(
-                                      cell.column.columnDef.cell,
-                                      cell.getContext()
-                                    )}
-                                  </div>
+                                <TableCell key={cell.id} className="py-3">
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                  )}
                                 </TableCell>
                               ))}
                             </TableRow>
@@ -324,16 +400,17 @@ export default function QueryPage() {
                           <TableRow>
                             <TableCell
                               colSpan={columns.length}
-                              className="h-24 text-center"
+                              className="h-24 text-center text-muted-foreground"
                             >
-                              No results.
+                              No results found.
                             </TableCell>
                           </TableRow>
                         )}
                         {loading && result.length > 0 && (
                           <TableRow>
-                            <TableCell colSpan={columns.length} className="text-center">
-                              Loading more...
+                            <TableCell colSpan={columns.length} className="text-center py-4">
+                              <LoadingSpinner className="mx-auto" />
+                              <span className="ml-2 text-muted-foreground">Loading more...</span>
                             </TableCell>
                           </TableRow>
                         )}
@@ -341,75 +418,100 @@ export default function QueryPage() {
                     </Table>
                   </div>
                 </div>
+              ) : loading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <LoadingSpinner size="lg" />
+                    <p className="text-muted-foreground">Executing query...</p>
+                  </div>
+                </div>
               ) : (
-                <div className="text-gray-400">No results to display.</div>
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-muted-foreground">No results to display</p>
+                    <p className="text-sm text-muted-foreground">
+                      Run a query to see results here
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
       {/* Mobile: stacked layout */}
-      <div className="flex flex-col md:hidden h-full w-full overflow-auto">
-        <div className="p-4">
-          <h1 className="text-xl font-bold mb-2">Query Editor</h1>
-          <Textarea
-            className="mb-4 resize-none"
-            placeholder="Write your SQL query here..."
+      <div className="flex flex-col md:hidden h-full w-full">
+        <div className="p-4 bg-card border-b border-border">
+          <h1 className="text-xl font-bold mb-4">Query Editor</h1>
+          <SqlEditor
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            rows={4}
+            onChange={setQuery}
+            onRun={handleRunQuery}
+            loading={loading}
+            height="200px"
           />
-          <Button onClick={handleRunQuery} disabled={loading} className="w-full">
-            {loading ? "Running..." : "Run Query"}
-          </Button>
         </div>
-        <div className="flex-1 p-4 overflow-auto">
-          <h2 className="text-lg font-semibold mb-2">Result</h2>
+        <div className="flex-1 p-4 overflow-auto bg-background">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Results</h2>
+            {result.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            )}
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {result.length > 0 ? (
-            <div className="w-full">
-              <div className="flex flex-col gap-2 py-2">
-                {table.getColumn("email") && (
-                  <Input
-                    placeholder="Filter emails..."
-                    value={
-                      (table.getColumn("email")?.getFilterValue() as string) ?? ""
-                    }
-                    onChange={(event) =>
-                      table.getColumn("email")?.setFilterValue(event.target.value)
-                    }
-                    className="max-w-sm"
-                  />
-                )}
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <Input
+                  placeholder="Search all columns..."
+                  value={globalFilter ?? ""}
+                  onChange={(event) => setGlobalFilter(event.target.value)}
+                />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      Columns <ChevronDown />
+                    <Button variant="outline" className="w-full gap-2">
+                      <Filter className="h-4 w-4" />
+                      Columns
+                      <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
                     {table
                       .getAllColumns()
                       .filter((column) => column.getCanHide())
-                      .map((column) => {
-                        return (
-                          <DropdownMenuCheckboxItem
-                            key={column.id}
-                            className="capitalize"
-                            checked={column.getIsVisible()}
-                            onCheckedChange={(value) =>
-                              column.toggleVisibility(!!value)
-                            }
-                          >
-                            {column.id}
-                          </DropdownMenuCheckboxItem>
-                        );
-                      })}
+                      .map((column) => (
+                        <DropdownMenuCheckboxItem
+                          key={column.id}
+                          className="capitalize"
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) =>
+                            column.toggleVisibility(!!value)
+                          }
+                        >
+                          {column.id}
+                        </DropdownMenuCheckboxItem>
+                      ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
               <div
                 ref={tableContainerRef}
-                className="rounded-md border overflow-auto max-h-[50vh]"
+                className="overflow-auto table-container max-h-[60vh]"
               >
                 <Table>
                   <TableHeader>
@@ -434,16 +536,13 @@ export default function QueryPage() {
                         <TableRow
                           key={row.id}
                           data-state={row.getIsSelected() && "selected"}
-                          className="h-16"
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="p-2 align-top">
-                              <div className="max-h-32 overflow-auto">
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
-                              </div>
+                            <TableCell key={cell.id} className="py-3">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -454,14 +553,14 @@ export default function QueryPage() {
                           colSpan={columns.length}
                           className="h-24 text-center"
                         >
-                          No results.
+                          No results found.
                         </TableCell>
                       </TableRow>
                     )}
                     {loading && result.length > 0 && (
                       <TableRow>
-                        <TableCell colSpan={columns.length} className="text-center">
-                          Loading more...
+                        <TableCell colSpan={columns.length} className="text-center py-4">
+                          <LoadingSpinner className="mx-auto" />
                         </TableCell>
                       </TableRow>
                     )}
@@ -469,8 +568,22 @@ export default function QueryPage() {
                 </Table>
               </div>
             </div>
+          ) : loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <LoadingSpinner size="lg" />
+                <p className="text-muted-foreground">Executing query...</p>
+              </div>
+            </div>
           ) : (
-            <div className="text-gray-400">No results to display.</div>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-2">
+                <p className="text-muted-foreground">No results to display</p>
+                <p className="text-sm text-muted-foreground">
+                  Run a query to see results here
+                </p>
+              </div>
+            </div>
           )}
         </div>
       </div>

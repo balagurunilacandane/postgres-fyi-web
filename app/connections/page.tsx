@@ -11,8 +11,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle2Icon, AlertCircleIcon } from "lucide-react";
+import { CheckCircle2Icon, AlertCircleIcon, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import api from "@/utils/axiosInstance";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
@@ -36,12 +37,16 @@ export default function ConnectionsPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg("");
     setErrorMsg("");
+    setIsConnecting(true);
+
     const newErrors = {
       host: host.trim() ? "" : "Host is required",
       port: port.trim() ? "" : "Port is required",
@@ -51,16 +56,12 @@ export default function ConnectionsPage() {
     };
     setErrors(newErrors);
 
-    if (
-      newErrors.host ||
-      newErrors.port ||
-      newErrors.database ||
-      newErrors.username ||
-      newErrors.password
-    ) {
+    if (Object.values(newErrors).some(error => error)) {
+      setIsConnecting(false);
       return;
     }
-    const connectionId = uuidv4(); // changed let to const
+
+    const connectionId = uuidv4();
     try {
       await api.post("/connect", {
         id: connectionId,
@@ -96,14 +97,14 @@ export default function ConnectionsPage() {
           "recentConnections",
           JSON.stringify([newConn, ...existing].slice(0, 5))
         );
-        // Store the current connection id
         localStorage.setItem("current_conn_id", newConn.id);
       }
 
       // Navigate to the query page after successful connection
-      router.push("/query");
+      setTimeout(() => {
+        router.push("/query");
+      }, 1000);
     } catch (error) {
-      // Type guard for Axios error
       const message =
         typeof error === "object" &&
         error !== null &&
@@ -117,6 +118,8 @@ export default function ConnectionsPage() {
           ? (error.response.data as { message?: string }).message
           : "Failed to connect. Please check your details and try again.";
       setErrorMsg(message ?? "Failed to connect. Please check your details and try again.");
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -129,22 +132,19 @@ export default function ConnectionsPage() {
       }
     };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaveError("");
-    // Check for connection name
+    setIsSaving(true);
+
     if (!connectionName.trim()) {
       setSaveError("Connection name is required.");
+      setIsSaving(false);
       return;
     }
-    // Check for required connection details
-    if (
-      !host.trim() ||
-      !port.trim() ||
-      !database.trim() ||
-      !username.trim() ||
-      !password.trim()
-    ) {
+
+    if (!host.trim() || !port.trim() || !database.trim() || !username.trim() || !password.trim()) {
       setSaveError("Connection details are missing. Please fill all fields.");
+      setIsSaving(false);
       return;
     }
 
@@ -174,239 +174,251 @@ export default function ConnectionsPage() {
         JSON.stringify([newConn, ...existing].slice(0, 10))
       );
     }
-    setSaveError(""); // clear error if successful
+
     setSuccessMsg("Connection saved successfully!");
+    setConnectionName("");
+    setIsSaving(false);
   };
 
+  const colorOptions = [
+    { value: "#3b82f6", name: "Blue" },
+    { value: "#ef4444", name: "Red" },
+    { value: "#f59e0b", name: "Amber" },
+    { value: "#10b981", name: "Emerald" },
+    { value: "#8b5cf6", name: "Violet" },
+    { value: "#f97316", name: "Orange" },
+  ];
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 px-2">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>New Connection</CardTitle>
-          <p className="text-gray-500 text-sm mt-2">
-            Enter your database connection details below to connect to your
-            PostgreSQL server.
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-2xl mx-auto space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">Database Connection</h1>
+          <p className="text-muted-foreground">
+            Connect to your PostgreSQL database to start querying and managing your data
           </p>
-        </CardHeader>
-        <CardContent>
-          {/* Success Alert */}
-          {successMsg && (
-            <Alert className="mb-4">
-              <CheckCircle2Icon className="text-green-600" />
-              <AlertTitle>Success!</AlertTitle>
-              <AlertDescription>{successMsg}</AlertDescription>
-            </Alert>
-          )}
-          {/* Error Alert */}
-          {errorMsg && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircleIcon className="text-red-600" />
-              <AlertTitle>Unable to connect</AlertTitle>
-              <AlertDescription>{errorMsg}</AlertDescription>
-            </Alert>
-          )}
-          <form onSubmit={handleConnect}>
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
+        </div>
+
+        <Card className="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <CheckCircle2Icon className="h-5 w-5 text-primary" />
+              </div>
+              New Connection
+            </CardTitle>
+            <p className="text-muted-foreground">
+              Enter your database connection details below to connect to your PostgreSQL server.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Success Alert */}
+            {successMsg && (
+              <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
+                <CheckCircle2Icon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertTitle className="text-green-800 dark:text-green-400">Success!</AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-300">
+                  {successMsg}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Error Alert */}
+            {errorMsg && (
+              <Alert variant="destructive">
+                <AlertCircleIcon className="h-4 w-4" />
+                <AlertTitle>Unable to connect</AlertTitle>
+                <AlertDescription>{errorMsg}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleConnect} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-3">
                   <Label htmlFor="host">Host</Label>
                   <Input
                     id="host"
                     placeholder="localhost"
                     value={host}
                     onChange={handleInputChange("host", setHost)}
+                    className={errors.host ? "border-destructive" : ""}
                   />
                   {errors.host && (
-                    <span className="text-red-500 text-xs mt-1 block">
+                    <span className="text-destructive text-sm mt-1 block">
                       {errors.host}
                     </span>
                   )}
                 </div>
-                <div className="sm:w-28 w-full">
+                <div>
                   <Label htmlFor="port">Port</Label>
                   <Input
                     id="port"
                     placeholder="5432"
                     value={port}
                     onChange={handleInputChange("port", setPort)}
+                    className={errors.port ? "border-destructive" : ""}
                   />
                   {errors.port && (
-                    <span className="text-red-500 text-xs mt-1 block">
+                    <span className="text-destructive text-sm mt-1 block">
                       {errors.port}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="grid gap-2">
+
+              <div>
                 <Label htmlFor="database">Database Name</Label>
                 <Input
                   id="database"
                   placeholder="postgres"
                   value={database}
                   onChange={handleInputChange("database", setDatabase)}
+                  className={errors.database ? "border-destructive" : ""}
                 />
                 {errors.database && (
-                  <span className="text-red-500 text-xs mt-1 block">
+                  <span className="text-destructive text-sm mt-1 block">
                     {errors.database}
                   </span>
                 )}
               </div>
-              <div className="grid gap-2">
+
+              <div>
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
                   placeholder="user"
                   value={username}
                   onChange={handleInputChange("username", setUsername)}
+                  className={errors.username ? "border-destructive" : ""}
                 />
                 {errors.username && (
-                  <span className="text-red-500 text-xs mt-1 block">
+                  <span className="text-destructive text-sm mt-1 block">
                     {errors.username}
                   </span>
                 )}
               </div>
-              <div className="grid gap-2 relative">
+
+              <div className="relative">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={handleInputChange("password", setPassword)}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    // Eye-off icon
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4.03-9-7 0-1.07.37-2.09 1.03-2.97m3.11-2.98A9.97 9.97 0 0112 5c5 0 9 4.03 9 7 0 1.07-.37 2.09-1.03 2.97m-3.11 2.98A9.97 9.97 0 0112 19c-1.07 0-2.09-.37-2.97-1.03m-2.98-3.11A9.97 9.97 0 015 12c0-1.07.37-2.09 1.03-2.97m2.98-2.98A9.97 9.97 0 0112 5c1.07 0 2.09.37 2.97 1.03m2.98 3.11A9.97 9.97 0 0119 12c0 1.07-.37 2.09-1.03 2.97m-2.98 2.98A9.97 9.97 0 0112 19c-1.07 0-2.09-.37-2.97-1.03m-2.98-3.11A9.97 9.97 0 015 12c0-1.07.37-2.09 1.03-2.97"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 3l18 18"
-                      />
-                    </svg>
-                  ) : (
-                    // Eye icon
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                  )}
-                </button>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={handleInputChange("password", setPassword)}
+                    className={`pr-10 ${errors.password ? "border-destructive" : ""}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
                 {errors.password && (
-                  <span className="text-red-500 text-xs mt-1 block">
+                  <span className="text-destructive text-sm mt-1 block">
                     {errors.password}
                   </span>
                 )}
               </div>
-            </div>
-            <CardFooter className="flex justify-end gap-2 mt-6 p-0">
-              <Button type="submit" className="sm:w-auto" variant="outline">
-                Connect
-              </Button>
-            </CardFooter>
-          </form>
-          <hr className="my-6 border-t border-gray-200" />
-          <CardTitle>Save connection</CardTitle>
-          <p className="text-gray-500 text-sm mt-2">
-            Save this connection for quick access later.
-          </p>
-          <form className="mt-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-            <div className="flex flex-col gap-2">
+
+              <CardFooter className="px-0 pb-0">
+                <Button 
+                  type="submit" 
+                  className="w-full btn-hover-lift" 
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect to Database"
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="glass">
+          <CardHeader>
+            <CardTitle>Save Connection</CardTitle>
+            <p className="text-muted-foreground">
+              Save this connection for quick access later.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {saveError && (
+              <Alert variant="destructive">
+                <AlertCircleIcon className="h-4 w-4" />
+                <AlertDescription>{saveError}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div>
+              <Label htmlFor="connectionName">Connection Name</Label>
               <Input
-                type="text"
-                placeholder="Connection Name"
-                className="w-full"
+                id="connectionName"
+                placeholder="My Database Connection"
                 value={connectionName}
                 onChange={(e) => {
                   setConnectionName(e.target.value);
                   if (saveError) setSaveError("");
                 }}
               />
-              {saveError && (
-                <span className="text-red-500 text-xs mt-1 block">{saveError}</span>
-              )}
+            </div>
+
+            <div>
+              <Label>Connection Color</Label>
               <div className="flex items-center gap-3 mt-2">
-                {[
-                  "#3b82f6", // blue
-                  "#ef4444", // red
-                  "#f59e42", // orange
-                  "#10b981", // green
-                  "#a855f7", // purple
-                ].map((color) => (
-                  <label key={color} className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="connectionColor"
-                      value={color}
-                      checked={connectionColor === color}
-                      onChange={() => setConnectionColor(color)}
-                      className="sr-only"
-                    />
-                    <span
-                      className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
-                      style={{
-                        background: color,
-                        borderColor: connectionColor === color ? "#000" : "#e5e7eb",
-                        boxShadow: connectionColor === color ? "0 0 0 2px #000" : "none",
-                      }}
-                    >
-                      {connectionColor === color && (
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </span>
-                  </label>
+                {colorOptions.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    className="relative w-8 h-8 rounded-full border-2 transition-all hover:scale-110"
+                    style={{
+                      backgroundColor: color.value,
+                      borderColor: connectionColor === color.value ? "hsl(var(--foreground))" : "hsl(var(--border))",
+                      boxShadow: connectionColor === color.value ? "0 0 0 2px hsl(var(--ring))" : "none",
+                    }}
+                    onClick={() => setConnectionColor(color.value)}
+                    title={color.name}
+                  >
+                    {connectionColor === color.value && (
+                      <CheckCircle2Icon className="w-4 h-4 text-white absolute inset-0 m-auto" />
+                    )}
+                  </button>
                 ))}
               </div>
-              <div className="flex justify-end">
-                <Button type="submit" variant="default" className="sm:w-auto">
-                  Save
-                </Button>
-              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+
+            <Button 
+              onClick={handleSave} 
+              className="w-full btn-hover-lift" 
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Connection"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
