@@ -39,10 +39,24 @@ interface SavedQueriesSectionProps {
 }
 
 export function SavedQueriesSection({ onLoadQuery, refreshTrigger }: SavedQueriesSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false); // Changed from true to false
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Persist section state in localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem("saved-queries-section-open");
+    if (savedState !== null) {
+      setIsOpen(JSON.parse(savedState));
+    }
+  }, []);
+
+  const handleToggleSection = () => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    localStorage.setItem("saved-queries-section-open", JSON.stringify(newState));
+  };
 
   // Load saved queries from localStorage
   const loadSavedQueries = () => {
@@ -68,8 +82,10 @@ export function SavedQueriesSection({ onLoadQuery, refreshTrigger }: SavedQuerie
   };
 
   useEffect(() => {
-    loadSavedQueries();
-  }, [refreshTrigger]);
+    if (isOpen) {
+      loadSavedQueries();
+    }
+  }, [refreshTrigger, isOpen]);
 
   // Delete a saved query
   const handleDelete = (id: string) => {
@@ -191,7 +207,7 @@ export function SavedQueriesSection({ onLoadQuery, refreshTrigger }: SavedQuerie
   return (
     <div className="border-b border-border group">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleSection}
         className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -200,6 +216,7 @@ export function SavedQueriesSection({ onLoadQuery, refreshTrigger }: SavedQuerie
           ) : (
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
+          <FileText className="h-4 w-4 text-primary" />
           <h3 className="font-semibold text-foreground">Saved Queries</h3>
           {savedQueries.length > 0 && (
             <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
