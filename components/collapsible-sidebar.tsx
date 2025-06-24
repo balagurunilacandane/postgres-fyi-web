@@ -75,18 +75,6 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
             </Button>
           </div>
         </div>
-
-        {/* Get Started Button */}
-        {!isCollapsed && (
-          <Button
-            onClick={handleGetStarted}
-            variant="outline"
-            className="w-full mt-4 flex items-center justify-center gap-2 btn-hover-lift"
-          >
-            <BookOpen className="h-4 w-4" />
-            Get Started Guide
-          </Button>
-        )}
       </header>
 
       {/* Content */}

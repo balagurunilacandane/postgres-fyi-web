@@ -42,12 +42,26 @@ interface SavedQueriesSearchSectionProps {
 }
 
 export function SavedQueriesSearchSection({ onLoadQuery, refreshTrigger }: SavedQueriesSearchSectionProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false); // Changed from true to false
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [filteredQueries, setFilteredQueries] = useState<SavedQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+
+  // Persist section state in localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem("saved-queries-search-section-open");
+    if (savedState !== null) {
+      setIsOpen(JSON.parse(savedState));
+    }
+  }, []);
+
+  const handleToggleSection = () => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    localStorage.setItem("saved-queries-search-section-open", JSON.stringify(newState));
+  };
 
   // Load saved queries from localStorage
   const loadSavedQueries = () => {
@@ -76,8 +90,10 @@ export function SavedQueriesSearchSection({ onLoadQuery, refreshTrigger }: Saved
   };
 
   useEffect(() => {
-    loadSavedQueries();
-  }, [refreshTrigger]);
+    if (isOpen) {
+      loadSavedQueries();
+    }
+  }, [refreshTrigger, isOpen]);
 
   // Filter queries based on search term
   useEffect(() => {
@@ -222,7 +238,7 @@ export function SavedQueriesSearchSection({ onLoadQuery, refreshTrigger }: Saved
   return (
     <div className="border-b border-border group">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleSection}
         className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
       >
         <div className="flex items-center gap-2">

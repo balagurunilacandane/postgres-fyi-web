@@ -87,14 +87,6 @@ export function ConnectionsSidebar() {
               <Plus className="h-4 w-4" />
               New Connection
             </Button>
-            <Button
-              onClick={handleGetStarted}
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2 btn-hover-lift"
-            >
-              <BookOpen className="h-4 w-4" />
-              Get Started Guide
-            </Button>
           </div>
         )}
       </header>
