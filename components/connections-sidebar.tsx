@@ -8,6 +8,7 @@ import SavedConnectionsList from "@/components/saved_connections_list";
 import RecentConnectionsList from "@/components/recent_connections_list";
 import { DatabaseSchemaSection } from "@/components/database-schema-section";
 import { SavedQueriesSearchSection } from "@/components/saved-queries-search-section";
+import { GetStartedSection } from "@/components/get-started-section";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -89,6 +90,11 @@ export function ConnectionsSidebar() {
       {!isCollapsed && (
         <div className="flex-1 overflow-auto">
           <div className="space-y-0">
+            {/* Get Started Section */}
+            <div className="border-b border-border">
+              <GetStartedSection />
+            </div>
+            
             {/* Saved Connections */}
             <div className="border-b border-border">
               <SavedConnectionsList />

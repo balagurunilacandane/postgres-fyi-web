@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Database } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SchemaList from "@/components/schema_list";
 import { SavedQueriesSection } from "@/components/saved-queries-section";
+import { GetStartedSection } from "@/components/get-started-section";
 import { cn } from "@/lib/utils";
 
 interface CollapsibleSidebarProps {
@@ -15,6 +16,20 @@ interface CollapsibleSidebarProps {
 
 export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Persist sidebar state in localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem("query-sidebar-collapsed");
+    if (savedState !== null) {
+      setIsCollapsed(JSON.parse(savedState));
+    }
+  }, []);
+
+  const handleToggle = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem("query-sidebar-collapsed", JSON.stringify(newState));
+  };
 
   return (
     <aside
@@ -43,8 +58,9 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={handleToggle}
               className="h-8 w-8 p-0"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -60,6 +76,11 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
       {!isCollapsed && (
         <div className="flex-1 overflow-auto">
           <div className="space-y-0">
+            {/* Get Started Section */}
+            <div className="border-b border-border">
+              <GetStartedSection />
+            </div>
+            
             {/* Saved Queries Section */}
             <SavedQueriesSection onLoadQuery={onLoadQuery} refreshTrigger={refreshTrigger} />
             
@@ -74,7 +95,7 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
       {/* Collapsed state - show only icons */}
       {isCollapsed && (
         <div className="flex-1 flex flex-col items-center pt-4 space-y-4">
-          <div className="p-2 bg-primary/10 rounded-lg">
+          <div className="p-2 bg-primary/10 rounded-lg" title="Database Schema">
             <Database className="h-6 w-6 text-primary" />
           </div>
           <ThemeToggle />
