@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { SqlEditor } from "@/components/sql-editor";
 import {
   ColumnDef,
   useReactTable,
@@ -39,6 +38,9 @@ import {
 } from "@/components/ui/resizable";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CollapsibleSidebar } from "@/components/collapsible-sidebar";
+import { ResizableSqlEditor } from "@/components/resizable-sql-editor";
+import { useToast } from "@/hooks/use-toast";
 import api from "@/utils/axiosInstance";
 
 // Types for table fields and rows
@@ -111,6 +113,7 @@ export default function QueryPage() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -122,6 +125,7 @@ export default function QueryPage() {
   const [offset, setOffset] = useState(0);
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Infinite scroll fetch
   const fetchQueryData = useCallback(
@@ -183,6 +187,16 @@ export default function QueryPage() {
     await fetchQueryData(false);
   };
 
+  // Handle query load from sidebar
+  const handleLoadQuery = (newQuery: string) => {
+    setQuery(newQuery);
+  };
+
+  // Handle save success to refresh sidebar
+  const handleSaveSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   // Infinite scroll handler
   useEffect(() => {
     const handleScroll = () => {
@@ -238,204 +252,244 @@ export default function QueryPage() {
   });
 
   const exportToCSV = () => {
-    if (result.length === 0) return;
+    if (result.length === 0) {
+      toast({
+        title: "Warning",
+        description: "No data to export",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    const headers = fields.map(field => field.name).join(",");
-    const rows = result.map(row => 
-      fields.map(field => {
-        const value = row[field.name];
-        if (typeof value === "string" && value.includes(",")) {
-          return `"${value}"`;
-        }
-        return value;
-      }).join(",")
-    ).join("\n");
-    
-    const csv = `${headers}\n${rows}`;
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `query-results-${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      const headers = fields.map(field => field.name).join(",");
+      const rows = result.map(row => 
+        fields.map(field => {
+          const value = row[field.name];
+          if (typeof value === "string" && value.includes(",")) {
+            return `"${value}"`;
+          }
+          return value;
+        }).join(",")
+      ).join("\n");
+      
+      const csv = `${headers}\n${rows}`;
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `query-results-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "Data exported to CSV successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export data",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="h-screen w-full bg-background">
-      {/* Desktop: Resizable vertical panels */}
+      {/* Desktop: Resizable horizontal panels */}
       <div className="hidden md:block h-full w-full">
         <ResizablePanelGroup
-          direction="vertical"
+          direction="horizontal"
           className="h-screen w-full"
         >
-          <ResizablePanel defaultSize={35} minSize={20} maxSize={60}>
-            <div className="h-full flex flex-col p-6 bg-card border-b border-border">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-foreground">Query Editor</h1>
-                <div className="flex items-center gap-2">
-                  {result.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={exportToCSV}
-                      className="gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Export CSV
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="flex-1">
-                <SqlEditor
-                  value={query}
-                  onChange={setQuery}
-                  onRun={handleRunQuery}
-                  loading={loading}
-                  height="100%"
-                />
-              </div>
-            </div>
+          {/* Collapsible Sidebar */}
+          <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+            <CollapsibleSidebar 
+              onLoadQuery={handleLoadQuery} 
+              refreshTrigger={refreshTrigger}
+            />
           </ResizablePanel>
-          <ResizableHandle className="h-1 bg-border hover:bg-border/80 transition-colors" />
-          <ResizablePanel defaultSize={65} minSize={40} maxSize={80}>
-            <div className="h-full p-6 flex flex-col bg-background">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-foreground">Results</h2>
-                {result.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    {result.length} row{result.length !== 1 ? "s" : ""}
-                    {hasMore && " (more available)"}
-                  </div>
-                )}
-              </div>
-
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {result.length > 0 ? (
-                <div className="flex-1 flex flex-col space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center gap-4">
-                    <Input
-                      placeholder="Search all columns..."
-                      value={globalFilter ?? ""}
-                      onChange={(event) => setGlobalFilter(event.target.value)}
-                      className="max-w-sm"
-                    />
+          <ResizableHandle className="w-1 bg-border hover:bg-border/80 transition-colors" />
+          
+          {/* Main Content */}
+          <ResizablePanel defaultSize={75} minSize={60}>
+            <ResizablePanelGroup
+              direction="vertical"
+              className="h-full w-full"
+            >
+              {/* Query Editor Panel */}
+              <ResizablePanel defaultSize={40} minSize={25} maxSize={70}>
+                <div className="h-full flex flex-col p-6 bg-card border-b border-border">
+                  <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-2xl font-bold text-foreground">Query Editor</h1>
                     <div className="flex items-center gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <Filter className="h-4 w-4" />
-                            Columns
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => (
-                              <DropdownMenuCheckboxItem
-                                key={column.id}
-                                className="capitalize"
-                                checked={column.getIsVisible()}
-                                onCheckedChange={(value) =>
-                                  column.toggleVisibility(!!value)
-                                }
-                              >
-                                {column.id}
-                              </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {result.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={exportToCSV}
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Export CSV
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div
-                    ref={tableContainerRef}
-                    className="flex-1 overflow-auto table-container"
-                  >
-                    <Table>
-                      <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                          <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => (
-                              <TableHead key={header.id} className="font-semibold">
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext()
-                                    )}
-                              </TableHead>
+                  <div className="flex-1 min-h-0">
+                    <ResizableSqlEditor
+                      value={query}
+                      onChange={setQuery}
+                      onRun={handleRunQuery}
+                      loading={loading}
+                      onSaveSuccess={handleSaveSuccess}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle className="h-1 bg-border hover:bg-border/80 transition-colors" />
+              
+              {/* Results Panel */}
+              <ResizablePanel defaultSize={60} minSize={30} maxSize={75}>
+                <div className="h-full p-6 flex flex-col bg-background">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-foreground">Results</h2>
+                    {result.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        {result.length} row{result.length !== 1 ? "s" : ""}
+                        {hasMore && " (more available)"}
+                      </div>
+                    )}
+                  </div>
+
+                  {error && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {result.length > 0 ? (
+                    <div className="flex-1 flex flex-col space-y-4 min-h-0">
+                      <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        <Input
+                          placeholder="Search all columns..."
+                          value={globalFilter ?? ""}
+                          onChange={(event) => setGlobalFilter(event.target.value)}
+                          className="max-w-sm"
+                        />
+                        <div className="flex items-center gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-2">
+                                <Filter className="h-4 w-4" />
+                                Columns
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {table
+                                .getAllColumns()
+                                .filter((column) => column.getCanHide())
+                                .map((column) => (
+                                  <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    className="capitalize"
+                                    checked={column.getIsVisible()}
+                                    onCheckedChange={(value) =>
+                                      column.toggleVisibility(!!value)
+                                    }
+                                  >
+                                    {column.id}
+                                  </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      <div
+                        ref={tableContainerRef}
+                        className="flex-1 overflow-auto table-container min-h-0"
+                      >
+                        <Table>
+                          <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                              <TableRow key={headerGroup.id}>
+                                {headerGroup.headers.map((header) => (
+                                  <TableHead key={header.id} className="font-semibold">
+                                    {header.isPlaceholder
+                                      ? null
+                                      : flexRender(
+                                          header.column.columnDef.header,
+                                          header.getContext()
+                                        )}
+                                  </TableHead>
+                                ))}
+                              </TableRow>
                             ))}
-                          </TableRow>
-                        ))}
-                      </TableHeader>
-                      <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                          table.getRowModel().rows.map((row) => (
-                            <TableRow
-                              key={row.id}
-                              data-state={row.getIsSelected() && "selected"}
-                              className="hover:bg-muted/50 transition-colors"
-                            >
-                              {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id} className="py-3">
-                                  {flexRender(
-                                    cell.column.columnDef.cell,
-                                    cell.getContext()
-                                  )}
+                          </TableHeader>
+                          <TableBody>
+                            {table.getRowModel().rows?.length ? (
+                              table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                  key={row.id}
+                                  data-state={row.getIsSelected() && "selected"}
+                                  className="hover:bg-muted/50 transition-colors"
+                                >
+                                  {row.getVisibleCells().map((cell) => (
+                                    <TableCell key={cell.id} className="py-3">
+                                      {flexRender(
+                                        cell.column.columnDef.cell,
+                                        cell.getContext()
+                                      )}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={columns.length}
+                                  className="h-24 text-center text-muted-foreground"
+                                >
+                                  No results found.
                                 </TableCell>
-                              ))}
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell
-                              colSpan={columns.length}
-                              className="h-24 text-center text-muted-foreground"
-                            >
-                              No results found.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {loading && result.length > 0 && (
-                          <TableRow>
-                            <TableCell colSpan={columns.length} className="text-center py-4">
-                              <LoadingSpinner className="mx-auto" />
-                              <span className="ml-2 text-muted-foreground">Loading more...</span>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                              </TableRow>
+                            )}
+                            {loading && result.length > 0 && (
+                              <TableRow>
+                                <TableCell colSpan={columns.length} className="text-center py-4">
+                                  <LoadingSpinner className="mx-auto" />
+                                  <span className="ml-2 text-muted-foreground">Loading more...</span>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ) : loading ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center space-y-4">
+                        <LoadingSpinner size="lg" />
+                        <p className="text-muted-foreground">Executing query...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center space-y-2">
+                        <p className="text-muted-foreground">No results to display</p>
+                        <p className="text-sm text-muted-foreground">
+                          Run a query to see results here
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : loading ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <LoadingSpinner size="lg" />
-                    <p className="text-muted-foreground">Executing query...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center space-y-2">
-                    <p className="text-muted-foreground">No results to display</p>
-                    <p className="text-sm text-muted-foreground">
-                      Run a query to see results here
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
@@ -444,12 +498,12 @@ export default function QueryPage() {
       <div className="flex flex-col md:hidden h-full w-full">
         <div className="p-4 bg-card border-b border-border">
           <h1 className="text-xl font-bold mb-4">Query Editor</h1>
-          <SqlEditor
+          <ResizableSqlEditor
             value={query}
             onChange={setQuery}
             onRun={handleRunQuery}
             loading={loading}
-            height="200px"
+            onSaveSuccess={handleSaveSuccess}
           />
         </div>
         <div className="flex-1 p-4 overflow-auto bg-background">
