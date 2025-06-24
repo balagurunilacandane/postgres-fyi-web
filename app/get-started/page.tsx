@@ -16,9 +16,6 @@ import {
   Server,
   Database,
   Zap,
-  Shield,
-  Clock,
-  Users,
   AlertTriangle,
   Info,
   ChevronRight,
@@ -64,21 +61,6 @@ const features = [
     icon: Database,
     title: "Database Management",
     description: "Connect to multiple PostgreSQL databases and manage them efficiently",
-  },
-  {
-    icon: Zap,
-    title: "Fast Queries",
-    description: "Execute SQL queries with syntax highlighting and auto-completion",
-  },
-  {
-    icon: Shield,
-    title: "Secure Connections",
-    description: "Encrypted connections with support for SSL and authentication",
-  },
-  {
-    icon: Users,
-    title: "Multi-User Support",
-    description: "Share saved queries and connections across your team",
   },
 ];
 
@@ -202,18 +184,16 @@ export default function GetStartedPage() {
         </div>
 
         {/* Features Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {features.map((feature, index) => (
-            <Card key={index} className="text-center hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="p-3 bg-primary/10 rounded-lg w-fit mx-auto mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex justify-center mb-12">
+          <Card className="text-center hover:shadow-md transition-shadow max-w-sm">
+            <CardContent className="pt-6">
+              <div className="p-3 bg-primary/10 rounded-lg w-fit mx-auto mb-4">
+                <Database className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">Database Management</h3>
+              <p className="text-sm text-muted-foreground">Connect to multiple PostgreSQL databases and manage them efficiently</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Installation Steps */}
@@ -349,7 +329,7 @@ export default function GetStartedPage() {
               Once the service is running, you can start creating database connections and querying your PostgreSQL databases. 
               The interface provides powerful tools for database management, query execution, and data visualization.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex justify-center">
               <Button
                 onClick={() => router.push("/connections")}
                 className="gap-2 bg-green-600 hover:bg-green-700 text-white"
@@ -357,14 +337,6 @@ export default function GetStartedPage() {
                 <Database className="h-4 w-4" />
                 Create Your First Connection
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2 border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950/30"
-                onClick={() => window.open("http://localhost:6240", "_blank")}
-              >
-                <ExternalLink className="h-4 w-4" />
-                Open Service Dashboard
               </Button>
             </div>
           </CardContent>
@@ -418,10 +390,6 @@ export default function GetStartedPage() {
             <Button variant="outline" size="sm" className="gap-2">
               <BookOpen className="h-4 w-4" />
               Documentation
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Users className="h-4 w-4" />
-              Community Support
             </Button>
           </div>
         </div>
