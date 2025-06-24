@@ -2,6 +2,29 @@
 
 import { useState, useEffect } from "react";
 import api from "@/utils/axiosInstance";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronDown,
+  ChevronRight,
+  Database,
+  Trash2,
+  Plus,
+  Sparkles,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { useToast } from "@/hooks/use-toast";
+
 type Connection = {
   password: string;
   username: string;
@@ -9,73 +32,116 @@ type Connection = {
   host: string;
   id: string;
   name: string;
-  color: string; // hex code
+  color: string;
   database: string;
 };
+
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 const LOCAL_STORAGE_KEY = "savedConnections";
 
 function SavedConnectionsSkeleton() {
   return (
-    <ul className="space-y-3 animate-pulse">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <li
+    <div className="space-y-3 animate-pulse">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
           key={i}
-          className="flex items-center justify-between bg-muted rounded-md px-4 py-2"
+          className="flex items-center justify-between bg-muted rounded-md px-4 py-3"
         >
-          <span className="h-4 w-32 bg-gray-200 rounded block" />
-        </li>
+          <div className="flex items-center gap-3">
+            <div className="h-4 w-4 bg-muted-foreground/30 rounded" />
+            <div className="space-y-1">
+              <div className="h-4 w-24 bg-muted-foreground/30 rounded" />
+              <div className="h-3 w-16 bg-muted-foreground/20 rounded" />
+            </div>
+          </div>
+          <div className="h-4 w-4 bg-muted-foreground/30 rounded" />
+        </div>
       ))}
-    </ul>
+    </div>
+  );
+}
+
+function EmptyConnectionsState({ onNewConnection }: { onNewConnection: () => void }) {
+  return (
+    <div className="text-center py-8 px-4">
+      <div className="relative mb-4">
+        <Database className="h-16 w-16 text-muted-foreground/40 mx-auto" />
+        <Sparkles className="h-6 w-6 text-primary/60 absolute -top-1 -right-1 animate-pulse" />
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-2">
+        No saved connections yet
+      </h3>
+      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+        Create your first database connection to get started with querying and managing your data.
+      </p>
+      <Button
+        onClick={onNewConnection}
+        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground btn-hover-lift"
+        size="sm"
+      >
+        <Plus className="h-4 w-4" />
+        Create Connection
+      </Button>
+    </div>
   );
 }
 
 export default function SavedConnectionsList() {
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [asc, setAsc] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const router = useRouter();
+  const { toast } = useToast();
+
+  // Persist section state in localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem("saved-connections-section-open");
+    if (savedState !== null) {
+      setIsOpen(JSON.parse(savedState));
+    }
+  }, []);
+
+  const handleToggleSection = () => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    localStorage.setItem("saved-connections-section-open", JSON.stringify(newState));
+  };
+
+  const loadConnections = () => {
+    const stored =
+      typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
+    if (stored) {
+      try {
+        setConnections(JSON.parse(stored));
+      } catch {
+        setConnections([]);
+      }
+    } else {
+      setConnections([]);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     setLoading(true);
     const timer = setTimeout(() => {
-      const stored =
-        typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
-      if (stored) {
-        try {
-          setConnections(JSON.parse(stored));
-        } catch {
-          setConnections([]);
-        }
-      }
-      setLoading(false);
+      loadConnections();
     }, 600);
 
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSort = () => {
-    const sorted = [...connections].sort((a, b) =>
-      asc
-        ? a.color.localeCompare(b.color)
-        : b.color.localeCompare(a.color)
-    );
-    setConnections(sorted);
-    setAsc(!asc);
+  const handleNewConnection = () => {
+    router.push("/connections");
   };
 
-  // Open modal and set which connection to delete
   const handleDeleteClick = (id: string) => {
     setDeleteId(id);
-    setShowModal(true);
   };
 
-  // Confirm delete
   const handleConfirmDelete = () => {
     if (!deleteId) return;
     const updated = connections.filter(conn => conn.id !== deleteId);
@@ -83,17 +149,17 @@ export default function SavedConnectionsList() {
     if (typeof window !== "undefined") {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
     }
-    setShowModal(false);
     setDeleteId(null);
+    toast({
+      title: "Success",
+      description: "Connection deleted successfully",
+    });
   };
 
-  // Cancel delete
   const handleCancelDelete = () => {
-    setShowModal(false);
     setDeleteId(null);
   };
 
-  // Move useRouter inside the component and pass router to the handler
   async function handleSaveConnection(id: string) {
     if (typeof window !== "undefined") {
       const connection_details = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -102,9 +168,7 @@ export default function SavedConnectionsList() {
           let connections: Connection[] = JSON.parse(connection_details);
           const connection = connections.find(conn => conn.id === id);
           if (connection) {
-            // Generate a new id for this connection
             const newId = uuidv4();
-            // Call the /connect API
             await api.post("/connect", {
               id: newId,
               host: connection.host,
@@ -114,150 +178,132 @@ export default function SavedConnectionsList() {
               password: connection.password,
             });
 
-            // Replace the saved connection's id with the new id
             connections = connections.map(conn =>
               conn.id === id ? { ...conn, id: newId } : conn
             );
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(connections));
-            // Update current_conn_id with the new id
             localStorage.setItem("current_conn_id", newId);
 
-            // Update state so UI reflects the new id
             setConnections(connections);
-
-            // Navigate to the query page
             router.push("/query");
           }
         } catch (error) {
-          console.error("Failed to parse saved connections:", error);
+          console.error("Failed to connect:", error);
+          toast({
+            title: "Error",
+            description: "Failed to connect to database",
+            variant: "destructive",
+          });
         }
       }
     }
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-500">Saved Connections</h2>
-        <button
-          type="button"
-          onClick={handleSort}
-          className="p-1 rounded hover:bg-gray-100 transition"
-          title="Sort by color"
-        >
-          {/* Modern sort icon (vertical arrows) */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l-4-4m4 4l4-4"
-            />
-          </svg>
-        </button>
-      </div>
-      {loading ? (
-        <SavedConnectionsSkeleton />
-      ) : connections.length > 0 ? (
-        <ul
-          className="space-y-3"
-          style={
-            connections.length > 7
-              ? {
-                  maxHeight: "20rem",
-                  overflowY: "auto",
-                  paddingRight: "0.25rem",
-                }
-              : undefined
-          }
-        >
-          {connections.map((conn) => (
-            <li
-              key={conn.id + conn.name}
-              className="flex flex-col sm:flex-row sm:items-center bg-muted rounded-md px-4 py-2 group cursor-pointer hover:bg-gray-100 transition"
-              style={
-                conn.color
-                  ? {
-                      borderLeft: `6px solid ${conn.color}`,
-                      borderRadius: "0.375rem",
-                    }
-                  : { borderRadius: "0.375rem" }
-              }
-              onClick={() => handleSaveConnection(conn.id)}
-            >
-              <div className="flex-1">
-                <span className="font-medium">{conn.name}</span>
-                <span className="text-xs text-gray-500 mt-0.5 block">{conn.database}</span>
-              </div>
-              <button
-                className="ml-auto mt-2 sm:mt-0 text-red-500 hover:text-red-700 transition"
-                title="Delete connection"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(conn.id);
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h10"
-                  />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-8">
-          <Image
-            src="/no_saved_connection.svg"
-            alt="No connections"
-            width={96}
-            height={96}
-            className="mb-4 opacity-70"
-          />
-          <span className="text-gray-400 text-sm">No saved connections found</span>
+    <div className="group">
+      <button
+        onClick={handleToggleSection}
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+          <Database className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-foreground">Saved Connections</h3>
+          {connections.length > 0 && (
+            <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+              {connections.length}
+            </span>
+          )}
         </div>
-      )}
+        {connections.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNewConnection();
+            }}
+            className="gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
+        )}
+      </button>
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs">
-            <h3 className="text-lg font-semibold mb-2">Delete Connection</h3>
-            <p className="text-gray-700 mb-4">
-              Are you sure you want to delete this connection?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                onClick={handleCancelDelete}
-              >
-                No
-              </button>
-              <button
-                className="px-4 py-1 rounded bg-red-500 text-white hover:bg-red-600"
-                onClick={handleConfirmDelete}
-              >
-                Yes
-              </button>
+      {isOpen && (
+        <div className="px-4 pb-4">
+          {loading ? (
+            <SavedConnectionsSkeleton />
+          ) : connections.length === 0 ? (
+            <EmptyConnectionsState onNewConnection={handleNewConnection} />
+          ) : (
+            <div className="space-y-2">
+              {connections.map((conn) => (
+                <div
+                  key={conn.id + conn.name}
+                  className="group bg-card border border-border rounded-lg p-3 hover:bg-muted/30 transition-all duration-200 cursor-pointer"
+                  style={{
+                    borderLeft: `4px solid ${conn.color}`,
+                  }}
+                  onClick={() => handleSaveConnection(conn.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground truncate">
+                        {conn.name}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {conn.host}:{conn.port}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {conn.database}
+                      </p>
+                    </div>
+                    <AlertDialog open={deleteId === conn.id} onOpenChange={(open) => !open && setDeleteId(null)}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(conn.id);
+                          }}
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                          title="Delete connection"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Connection</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{conn.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={handleCancelDelete}>
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleConfirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

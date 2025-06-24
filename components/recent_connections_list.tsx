@@ -1,20 +1,81 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Database,
+  Zap,
+} from "lucide-react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 type RecentConnection = {
   id: string;
   host: string;
-  database: string
+  database: string;
 };
 
 const LOCAL_STORAGE_KEY = "recentConnections";
 
+function RecentConnectionsSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center bg-muted rounded-md px-4 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-4 w-4 bg-muted-foreground/30 rounded" />
+            <div className="space-y-1">
+              <div className="h-4 w-20 bg-muted-foreground/30 rounded" />
+              <div className="h-3 w-14 bg-muted-foreground/20 rounded" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyRecentState() {
+  return (
+    <div className="text-center py-6 px-4">
+      <div className="relative mb-3">
+        <Clock className="h-12 w-12 text-muted-foreground/40 mx-auto" />
+        <Zap className="h-4 w-4 text-primary/60 absolute -top-1 -right-1 animate-pulse" />
+      </div>
+      <p className="text-sm text-muted-foreground mb-1">
+        No recent connections
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Your recent database connections will appear here
+      </p>
+    </div>
+  );
+}
+
 export default function RecentConnectionsList() {
   const [recentConnections, setRecentConnections] = useState<RecentConnection[]>([]);
+  const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // Function to load connections from localStorage
+  // Persist section state in localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem("recent-connections-section-open");
+    if (savedState !== null) {
+      setIsOpen(JSON.parse(savedState));
+    }
+  }, []);
+
+  const handleToggleSection = () => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    localStorage.setItem("recent-connections-section-open", JSON.stringify(newState));
+  };
+
   const loadConnections = () => {
     const stored =
       typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
@@ -32,10 +93,8 @@ export default function RecentConnectionsList() {
 
   useEffect(() => {
     setLoading(true);
-    // Initial load
     loadConnections();
 
-    // Listen for localStorage changes (from other tabs/windows)
     const handleStorage = (event: StorageEvent) => {
       if (event.key === LOCAL_STORAGE_KEY) {
         loadConnections();
@@ -43,7 +102,6 @@ export default function RecentConnectionsList() {
     };
     window.addEventListener("storage", handleStorage);
 
-    // Listen for changes in this tab as well
     const interval = setInterval(() => {
       loadConnections();
     }, 1000);
@@ -55,42 +113,81 @@ export default function RecentConnectionsList() {
   }, []);
 
   if (!loading && recentConnections.length === 0) {
-    return null;
+    return (
+      <div className="group">
+        <button
+          onClick={handleToggleSection}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+            <Clock className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-foreground">Recent Connections</h3>
+          </div>
+        </button>
+
+        {isOpen && (
+          <div className="px-4 pb-4">
+            <EmptyRecentState />
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="p-4">
-      <h4 className="text-xl font-bold mb-4 text-gray-500">Recent Connections</h4>
-      {loading ? (
-        <ul className="space-y-3 animate-pulse">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <li
-              key={i}
-              className="flex items-center bg-muted rounded-md px-4 py-2"
-            >
-              <span className="h-4 w-32 bg-gray-200 rounded block" />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <ul className="space-y-3">
-          {recentConnections.map((conn) => (
-            <li
-              key={conn.id}
-              className="flex items-center bg-muted rounded-md px-4 py-2"
-            >
-              <div className="flex-1">
-                <span
-                  className="font-medium truncate max-w-[12rem] sm:max-w-xs md:max-w-sm lg:max-w-md"
-                  title={conn.host}
+    <div className="group">
+      <button
+        onClick={handleToggleSection}
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+          <Clock className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-foreground">Recent Connections</h3>
+          {recentConnections.length > 0 && (
+            <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+              {recentConnections.length}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="px-4 pb-4">
+          {loading ? (
+            <RecentConnectionsSkeleton />
+          ) : (
+            <div className="space-y-2">
+              {recentConnections.map((conn) => (
+                <div
+                  key={conn.id}
+                  className="group bg-card border border-border rounded-lg p-3 hover:bg-muted/30 transition-all duration-200"
                 >
-                  {conn.host}
-                </span>
-                <span className="text-xs text-gray-500 mt-0.5 block">{conn.database}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <div className="flex items-center gap-3">
+                    <Database className="h-4 w-4 text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground truncate">
+                        {conn.host}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {conn.database}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

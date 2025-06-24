@@ -2,16 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Database } from "lucide-react";
+import { ChevronLeft, ChevronRight, Database, Plus } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SavedConnectionsList from "@/components/saved_connections_list";
 import RecentConnectionsList from "@/components/recent_connections_list";
 import { DatabaseSchemaSection } from "@/components/database-schema-section";
 import { SavedQueriesSearchSection } from "@/components/saved-queries-search-section";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export function ConnectionsSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const router = useRouter();
 
   // Persist sidebar state in localStorage
   useEffect(() => {
@@ -25,6 +27,10 @@ export function ConnectionsSidebar() {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem("connections-sidebar-collapsed", JSON.stringify(newState));
+  };
+
+  const handleNewConnection = () => {
+    router.push("/connections");
   };
 
   return (
@@ -66,6 +72,17 @@ export function ConnectionsSidebar() {
             </Button>
           </div>
         </div>
+
+        {/* New Connection Button */}
+        {!isCollapsed && (
+          <Button
+            onClick={handleNewConnection}
+            className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 btn-hover-lift"
+          >
+            <Plus className="h-4 w-4" />
+            New Connection
+          </Button>
+        )}
       </header>
 
       {/* Content */}
@@ -97,6 +114,15 @@ export function ConnectionsSidebar() {
           <div className="p-2 bg-primary/10 rounded-lg" title="PostgreSQL Database Manager">
             <Database className="h-6 w-6 text-primary" />
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNewConnection}
+            className="h-8 w-8 p-0"
+            title="New Connection"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
           <ThemeToggle />
         </div>
       )}
