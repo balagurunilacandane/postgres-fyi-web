@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Database } from "lucide-react";
+import { ChevronLeft, ChevronRight, Database, BookOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SchemaList from "@/components/schema_list";
 import { SavedQueriesSection } from "@/components/saved-queries-section";
 import { GetStartedSection } from "@/components/get-started-section";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface CollapsibleSidebarProps {
   onLoadQuery: (query: string) => void;
@@ -16,6 +17,7 @@ interface CollapsibleSidebarProps {
 
 export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const router = useRouter();
 
   // Persist sidebar state in localStorage
   useEffect(() => {
@@ -29,6 +31,10 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem("query-sidebar-collapsed", JSON.stringify(newState));
+  };
+
+  const handleGetStarted = () => {
+    router.push("/get-started");
   };
 
   return (
@@ -70,6 +76,18 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
             </Button>
           </div>
         </div>
+
+        {/* Get Started Button */}
+        {!isCollapsed && (
+          <Button
+            onClick={handleGetStarted}
+            variant="outline"
+            className="w-full mt-4 flex items-center justify-center gap-2 btn-hover-lift"
+          >
+            <BookOpen className="h-4 w-4" />
+            Get Started Guide
+          </Button>
+        )}
       </header>
 
       {/* Content */}
@@ -98,6 +116,15 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
           <div className="p-2 bg-primary/10 rounded-lg" title="Database Schema">
             <Database className="h-6 w-6 text-primary" />
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGetStarted}
+            className="h-8 w-8 p-0"
+            title="Get Started Guide"
+          >
+            <BookOpen className="h-4 w-4" />
+          </Button>
           <ThemeToggle />
         </div>
       )}

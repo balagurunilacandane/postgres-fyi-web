@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Database, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Database, Plus, BookOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SavedConnectionsList from "@/components/saved_connections_list";
 import RecentConnectionsList from "@/components/recent_connections_list";
@@ -32,6 +32,10 @@ export function ConnectionsSidebar() {
 
   const handleNewConnection = () => {
     router.push("/connections");
+  };
+
+  const handleGetStarted = () => {
+    router.push("/get-started");
   };
 
   return (
@@ -74,15 +78,25 @@ export function ConnectionsSidebar() {
           </div>
         </div>
 
-        {/* New Connection Button */}
+        {/* Action Buttons */}
         {!isCollapsed && (
-          <Button
-            onClick={handleNewConnection}
-            className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 btn-hover-lift"
-          >
-            <Plus className="h-4 w-4" />
-            New Connection
-          </Button>
+          <div className="space-y-2 mt-4">
+            <Button
+              onClick={handleNewConnection}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 btn-hover-lift"
+            >
+              <Plus className="h-4 w-4" />
+              New Connection
+            </Button>
+            <Button
+              onClick={handleGetStarted}
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2 btn-hover-lift"
+            >
+              <BookOpen className="h-4 w-4" />
+              Get Started Guide
+            </Button>
+          </div>
         )}
       </header>
 
@@ -128,6 +142,15 @@ export function ConnectionsSidebar() {
             title="New Connection"
           >
             <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGetStarted}
+            className="h-8 w-8 p-0"
+            title="Get Started Guide"
+          >
+            <BookOpen className="h-4 w-4" />
           </Button>
           <ThemeToggle />
         </div>
