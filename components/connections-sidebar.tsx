@@ -8,7 +8,6 @@ import SavedConnectionsList from "@/components/saved_connections_list";
 import RecentConnectionsList from "@/components/recent_connections_list";
 import { DatabaseSchemaSection } from "@/components/database-schema-section";
 import { SavedQueriesSearchSection } from "@/components/saved-queries-search-section";
-import { GetStartedSection } from "@/components/get-started-section";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -104,9 +103,19 @@ export function ConnectionsSidebar() {
       {!isCollapsed && (
         <div className="flex-1 overflow-auto">
           <div className="space-y-0">
-            {/* Get Started Section */}
+            {/* Get Started Navigation Link */}
             <div className="border-b border-border">
-              <GetStartedSection />
+              <button
+                onClick={handleGetStarted}
+                className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
+              >
+                <BookOpen className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground">Get Started</h3>
+                  <p className="text-xs text-muted-foreground">Installation & setup guide</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </button>
             </div>
             
             {/* Saved Connections */}
