@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { ConnectionStatusBadge } from "@/components/connection-status-badge";
+import { AppLayout } from "@/components/layout/app-layout";
 
 export const metadata: Metadata = {
   title: "PostgreSQL FYI - Database Management Tool",
@@ -31,10 +32,10 @@ export default function RootLayout({
                 <ConnectionStatusBadge />
               </div>
               
-              {/* Main content */}
-              <main className="h-full w-full">
+              {/* Main App Layout */}
+              <AppLayout>
                 {children}
-              </main>
+              </AppLayout>
             </div>
             <Toaster />
           </ErrorBoundary>

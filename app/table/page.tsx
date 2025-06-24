@@ -14,7 +14,7 @@ import {
   VisibilityState,
   flexRender,
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import api from "@/utils/axiosInstance";
 
 // Types for table fields and rows
@@ -47,12 +48,16 @@ function generateColumnsFromFields(fields: TableField[]): ColumnDef<TableRow>[] 
         const value = row.original[field.name];
         if (typeof value === "object" && value !== null) {
           return (
-            <pre className="whitespace-pre-wrap break-all text-xs">
+            <pre className="whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs">
               {JSON.stringify(value, null, 2)}
             </pre>
           );
         }
-        return <div>{value !== undefined ? String(value) : ""}</div>;
+        return (
+          <div className="max-w-xs truncate" title={String(value || "")}>
+            {value !== undefined ? String(value) : ""}
+          </div>
+        );
       },
     })),
     {
@@ -224,124 +229,138 @@ export default function TablePage() {
   };
 
   return (
-    <div className="h-screen w-full p-4 md:p-8 flex flex-col">
-      <div className="flex flex-col mb-4">
-        <Button
-          variant="outline"
-          onClick={handleBackToQuery}
-          className="w-max mb-2"
+    <div className="h-full flex flex-col">
+      <div className="p-6 border-b border-border bg-card">
+        <div className="flex items-center gap-4 mb-4">
+          <Button
+            variant="outline"
+            onClick={handleBackToQuery}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Query Page
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold capitalize text-foreground">
+              {tableName} Table
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {result.length} row{result.length !== 1 ? "s" : ""} loaded
+              {hasMore && " (more available)"}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {table.getColumn("email") && (
+            <Input
+              placeholder="Filter emails..."
+              value={
+                (table.getColumn("email")?.getFilterValue() as string) ?? ""
+              }
+              onChange={(event) =>
+                table.getColumn("email")?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                Columns <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+      
+      <div className="flex-1 min-h-0 p-6">
+        <div
+          ref={tableContainerRef}
+          className="h-full overflow-auto border border-border rounded-lg"
         >
-          ← Back to Query Page
-        </Button>
-        <h1 className="text-2xl font-bold capitalize">{tableName} Table</h1>
-      </div>
-      <div className="flex flex-col md:flex-row md:items-center py-4 gap-2">
-        {table.getColumn("email") && (
-          <Input
-            placeholder="Filter emails..."
-            value={
-              (table.getColumn("email")?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn("email")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
+          <Table>
+            <TableHeader className="sticky top-0 bg-muted/50 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="h-12 px-4 font-semibold">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {loading && result.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center h-24">
+                    <LoadingSpinner className="mx-auto" />
+                    <span className="ml-2 text-muted-foreground">Loading...</span>
+                  </TableCell>
+                </TableRow>
+              ) : result.length > 0 ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="h-12 hover:bg-muted/50 transition-colors"
                   >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div
-        ref={tableContainerRef}
-        className="rounded-md border flex-1 overflow-auto min-w-full"
-        style={{ maxHeight: "calc(100vh - 160px)" }}
-      >
-        <Table className="min-w-[900px]">
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading && result.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : result.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="h-16"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="p-2 align-top">
-                      <div className="max-h-32 overflow-auto">
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-4 py-3 align-top">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
                         )}
-                      </div>
-                    </TableCell>
-                  ))}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No results.
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-            {loading && result.length > 0 && (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center">
-                  Loading more...
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+              {loading && result.length > 0 && (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center py-4">
+                    <LoadingSpinner className="mx-auto" />
+                    <span className="ml-2 text-muted-foreground">Loading more...</span>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );
