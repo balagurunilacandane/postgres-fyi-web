@@ -324,11 +324,13 @@ export default function TablePage() {
                   </TableCell>
                 </TableRow>
               ) : result.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
+                table.getRowModel().rows.map((row, index) => (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="h-12 hover:bg-muted/50 transition-colors"
+                    className={`h-12 hover:bg-muted/50 transition-colors ${
+                      index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                    }`}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-4 py-3 align-top">

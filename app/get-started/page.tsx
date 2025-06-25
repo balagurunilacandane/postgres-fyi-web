@@ -20,6 +20,8 @@ import {
   Info,
   ChevronRight,
   Home,
+  Users,
+  Linkedin,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -79,6 +81,17 @@ const troubleshootingItems = [
     issue: "Cannot connect to service",
     solution: "Verify the service is running and check firewall settings",
     command: "sudo systemctl status postgres-fyi",
+  },
+];
+
+const contributors = [
+  {
+    name: "Balagurunil Acandane",
+    linkedin: "https://www.linkedin.com/in/balagurunilacandane/",
+  },
+  {
+    name: "Akbar Habeeb B",
+    linkedin: "https://www.linkedin.com/in/akbarhabeebb/",
   },
 ];
 
@@ -338,6 +351,42 @@ export default function GetStartedPage() {
                 Create Your First Connection
                 <ArrowRight className="h-4 w-4" />
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contributors Section */}
+        <Card className="mb-12">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <Users className="h-6 w-6 text-primary" />
+              Contributors
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6">
+              Meet the talented developers who made PostgreSQL FYI possible:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {contributors.map((contributor, index) => (
+                <div key={index} className="flex items-center gap-3 p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <Linkedin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <a
+                      href={contributor.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-foreground hover:text-primary transition-colors"
+                    >
+                      {contributor.name}
+                    </a>
+                    <p className="text-xs text-muted-foreground">Developer</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

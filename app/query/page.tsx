@@ -100,14 +100,18 @@ function generateColumnsFromFields(fields: TableField[]): ColumnDef<TableRow>[] 
   ];
 }
 
-export default function QueryPage() {
+interface QueryPageProps {
+  onQuerySaved?: () => void;
+  onLoadQuery?: (query: string) => void;
+}
+
+export default function QueryPage({ onQuerySaved }: QueryPageProps) {
   const [query, setQuery] = useState("SELECT * FROM information_schema.tables LIMIT 10;");
   const [result, setResult] = useState<TableRow[]>([]);
   const [fields, setFields] = useState<TableField[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -120,6 +124,18 @@ export default function QueryPage() {
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Listen for load query events from sidebar
+  useEffect(() => {
+    const handleLoadQuery = (event: CustomEvent) => {
+      setQuery(event.detail);
+    };
+
+    window.addEventListener('loadQuery', handleLoadQuery as EventListener);
+    return () => {
+      window.removeEventListener('loadQuery', handleLoadQuery as EventListener);
+    };
+  }, []);
 
   // Infinite scroll fetch
   const fetchQueryData = useCallback(
@@ -181,14 +197,9 @@ export default function QueryPage() {
     await fetchQueryData(false);
   };
 
-  // Handle query load from sidebar
-  const handleLoadQuery = (newQuery: string) => {
-    setQuery(newQuery);
-  };
-
   // Handle save success to refresh sidebar
   const handleSaveSuccess = () => {
-    setRefreshTrigger(prev => prev + 1);
+    onQuerySaved?.();
   };
 
   // Infinite scroll handler
@@ -404,11 +415,13 @@ export default function QueryPage() {
                   </TableHeader>
                   <TableBody>
                     {table.getRowModel().rows?.length ? (
-                      table.getRowModel().rows.map((row) => (
+                      table.getRowModel().rows.map((row, index) => (
                         <TableRow
                           key={row.id}
                           data-state={row.getIsSelected() && "selected"}
-                          className="hover:bg-muted/50 transition-colors h-12"
+                          className={`hover:bg-muted/50 transition-colors h-12 ${
+                            index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                          }`}
                         >
                           {row.getVisibleCells().map((cell) => (
                             <TableCell key={cell.id} className="px-4 py-3 align-top">

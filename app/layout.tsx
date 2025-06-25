@@ -3,7 +3,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";
-import { ConnectionStatusBadge } from "@/components/connection-status-badge";
 import { AppLayout } from "@/components/layout/app-layout";
 
 export const metadata: Metadata = {
@@ -27,11 +26,6 @@ export default function RootLayout({
         >
           <ErrorBoundary>
             <div className="h-screen w-screen relative bg-background">
-              {/* Connection Status Badge in top right */}
-              <div className="absolute top-4 right-4 z-50">
-                <ConnectionStatusBadge />
-              </div>
-              
               {/* Main App Layout */}
               <AppLayout>
                 {children}

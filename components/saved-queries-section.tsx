@@ -39,7 +39,7 @@ interface SavedQueriesSectionProps {
 }
 
 export function SavedQueriesSection({ onLoadQuery, refreshTrigger }: SavedQueriesSectionProps) {
-  const [isOpen, setIsOpen] = useState(false); // Changed from true to false
+  const [isOpen, setIsOpen] = useState(false);
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -86,6 +86,31 @@ export function SavedQueriesSection({ onLoadQuery, refreshTrigger }: SavedQuerie
       loadSavedQueries();
     }
   }, [refreshTrigger, isOpen]);
+
+  // Listen for real-time updates when queries are saved
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "saved_queries" && isOpen) {
+        loadSavedQueries();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Also listen for custom events for same-tab updates
+    const handleQuerySaved = () => {
+      if (isOpen) {
+        loadSavedQueries();
+      }
+    };
+
+    window.addEventListener("querySaved", handleQuerySaved);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("querySaved", handleQuerySaved);
+    };
+  }, [isOpen]);
 
   // Delete a saved query
   const handleDelete = (id: string) => {

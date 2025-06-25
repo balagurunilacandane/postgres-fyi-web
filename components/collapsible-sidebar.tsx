@@ -12,9 +12,10 @@ import { useRouter } from "next/navigation";
 interface CollapsibleSidebarProps {
   onLoadQuery: (query: string) => void;
   refreshTrigger?: number;
+  hideTablesSection?: boolean;
 }
 
-export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleSidebarProps) {
+export function CollapsibleSidebar({ onLoadQuery, refreshTrigger, hideTablesSection = false }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
 
@@ -99,10 +100,12 @@ export function CollapsibleSidebar({ onLoadQuery, refreshTrigger }: CollapsibleS
             {/* Saved Queries Section */}
             <SavedQueriesSection onLoadQuery={onLoadQuery} refreshTrigger={refreshTrigger} />
             
-            {/* Schema Section */}
-            <div className="p-4">
-              <SchemaList />
-            </div>
+            {/* Schema Section - Hidden on query page */}
+            {!hideTablesSection && (
+              <div className="p-4">
+                <SchemaList />
+              </div>
+            )}
           </div>
         </div>
       )}

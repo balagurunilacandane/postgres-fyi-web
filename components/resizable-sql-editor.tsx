@@ -313,6 +313,9 @@ export function ResizableSqlEditor({
       // Save back to localStorage
       localStorage.setItem("saved_queries", JSON.stringify(queries));
 
+      // Dispatch custom event for real-time updates
+      window.dispatchEvent(new CustomEvent("querySaved"));
+
       toast({
         title: "Success",
         description: `Query "${queryName}" saved successfully`,

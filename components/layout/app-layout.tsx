@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import { ConnectionsSidebar } from "@/components/connections-sidebar";
 import { CollapsibleSidebar } from "@/components/collapsible-sidebar";
@@ -12,15 +12,28 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Determine which sidebar to show based on the current route
   const isConnectionsPage = pathname === "/connections";
   const isGetStartedPage = pathname === "/get-started";
+  const isQueryPage = pathname === "/query";
   
   // Don't show layout on get-started page (it has its own layout)
   if (isGetStartedPage) {
     return <>{children}</>;
   }
+
+  const handleQuerySaved = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleLoadQuery = (query: string) => {
+    // This will be passed down to query page components
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('loadQuery', { detail: query }));
+    }
+  };
 
   return (
     <div className="h-screen w-full bg-background flex">
@@ -30,8 +43,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           <ConnectionsSidebar />
         ) : (
           <CollapsibleSidebar 
-            onLoadQuery={() => {}} 
-            refreshTrigger={0}
+            onLoadQuery={handleLoadQuery}
+            refreshTrigger={refreshTrigger}
+            hideTablesSection={isQueryPage}
           />
         )}
       </div>
@@ -43,7 +57,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         
         {/* Page Content */}
         <div className="flex-1 overflow-hidden">
-          {children}
+          {React.cloneElement(children as React.ReactElement, {
+            onQuerySaved: handleQuerySaved,
+            onLoadQuery: handleLoadQuery,
+          })}
         </div>
       </div>
     </div>
