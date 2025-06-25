@@ -198,7 +198,9 @@ html {
 }
 
 .data-table td {
-  @apply h-12 px-4 py-3 border-b border-border/50 align-top;
+  height: 3em;
+  @apply px-4 py-2 border-b border-border/50 align-middle;
+  vertical-align: middle;
 }
 
 /* Alternating row colors for better readability */
@@ -227,10 +229,17 @@ html {
 /* Ensure consistent cell content handling */
 .table-cell-content {
   @apply max-w-xs truncate;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .table-cell-json {
   @apply whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs;
+  max-height: 2.5em;
+  overflow-y: auto;
+  line-height: 1.2;
 }
 
 /* Fixed layout containers for proper height management */
