@@ -188,35 +188,9 @@ html {
   @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
 }
 
-/* Fixed table row heights and consistent formatting */
-.data-table {
-  @apply w-full border-collapse;
-}
-
-.data-table th {
-  @apply h-12 px-4 text-left font-semibold bg-muted/50 border-b border-border sticky top-0 z-10;
-}
-
-.data-table td {
-  @apply h-12 px-4 py-3 border-b border-border/50 align-top;
-}
-
-.data-table tr:hover {
-  @apply bg-muted/30 transition-colors;
-}
-
-/* Ensure consistent cell content handling */
-.table-cell-content {
-  @apply max-w-xs truncate;
-}
-
-.table-cell-json {
-  @apply whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs;
-}
-
 /* Fixed layout containers */
 .layout-container {
-  @apply h-screen w-full flex;
+  @apply h-screen w-full flex flex-col;
 }
 
 .sidebar-container {
@@ -237,7 +211,7 @@ html {
 
 /* Query editor specific styles */
 .query-editor-panel {
-  @apply h-80 border-b border-border bg-card;
+  @apply h-80 border-b border-border bg-card flex-shrink-0;
 }
 
 .results-panel {
@@ -246,9 +220,54 @@ html {
 
 /* Table page specific styles */
 .table-page-header {
-  @apply p-6 border-b border-border bg-card;
+  @apply p-6 border-b border-border bg-card flex-shrink-0;
 }
 
 .table-page-content {
   @apply flex-1 min-h-0 p-6;
+}
+
+/* Enhanced data table styling with fixed heights and alternating colors */
+.data-table {
+  @apply w-full border-collapse;
+}
+
+.data-table th {
+  @apply h-12 px-4 text-left font-semibold bg-muted/50 border-b border-border sticky top-0 z-10;
+}
+
+.data-table td {
+  @apply h-12 px-4 py-3 border-b border-border/50 align-top;
+}
+
+/* Alternating row colors for better readability */
+.data-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+/* Dark mode alternating colors */
+.dark .data-table tbody tr:nth-child(odd) {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.dark .data-table tbody tr:nth-child(even) {
+  background-color: hsl(var(--background));
+}
+
+/* Hover effects that work with alternating colors */
+.data-table tbody tr:hover {
+  @apply bg-muted/50 transition-colors;
+}
+
+/* Ensure consistent cell content handling */
+.table-cell-content {
+  @apply max-w-xs truncate;
+}
+
+.table-cell-json {
+  @apply whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs;
 }

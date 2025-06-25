@@ -48,13 +48,13 @@ function generateColumnsFromFields(fields: TableField[]): ColumnDef<TableRow>[] 
         const value = row.original[field.name];
         if (typeof value === "object" && value !== null) {
           return (
-            <pre className="whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs">
+            <pre className="table-cell-json">
               {JSON.stringify(value, null, 2)}
             </pre>
           );
         }
         return (
-          <div className="max-w-xs truncate" title={String(value || "")}>
+          <div className="table-cell-content" title={String(value || "")}>
             {value !== undefined ? String(value) : ""}
           </div>
         );
@@ -229,8 +229,9 @@ export default function TablePage() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-border bg-card">
+    <div className="layout-container">
+      {/* Table Header - Fixed */}
+      <div className="table-page-header">
         <div className="flex items-center gap-4 mb-4">
           <Button
             variant="outline"
@@ -293,17 +294,18 @@ export default function TablePage() {
         </div>
       </div>
       
-      <div className="flex-1 min-h-0 p-6">
+      {/* Table Content - Scrollable */}
+      <div className="table-page-content">
         <div
           ref={tableContainerRef}
           className="h-full overflow-auto border border-border rounded-lg"
         >
-          <Table>
-            <TableHeader className="sticky top-0 bg-muted/50 z-10">
+          <Table className="data-table">
+            <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-12 px-4 font-semibold">
+                    <TableHead key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -324,16 +326,13 @@ export default function TablePage() {
                   </TableCell>
                 </TableRow>
               ) : result.length > 0 ? (
-                table.getRowModel().rows.map((row, index) => (
+                table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className={`h-12 hover:bg-muted/50 transition-colors ${
-                      index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                    }`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-4 py-3 align-top">
+                      <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

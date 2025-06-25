@@ -52,13 +52,13 @@ function generateColumnsFromFields(fields: TableField[]): ColumnDef<TableRow>[] 
         const value = row.original[field.name];
         if (typeof value === "object" && value !== null) {
           return (
-            <pre className="whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs">
+            <pre className="table-cell-json">
               {JSON.stringify(value, null, 2)}
             </pre>
           );
         }
         return (
-          <div className="max-w-xs truncate" title={String(value || "")}>
+          <div className="table-cell-content" title={String(value || "")}>
             {value !== undefined ? String(value) : ""}
           </div>
         );
@@ -303,9 +303,9 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="layout-container">
       {/* Query Editor Panel - Fixed Height */}
-      <div className="h-80 border-b border-border bg-card">
+      <div className="query-editor-panel">
         <div className="h-full flex flex-col p-6">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-foreground">Query Editor</h1>
@@ -335,8 +335,8 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
         </div>
       </div>
       
-      {/* Results Panel - Flexible Height */}
-      <div className="flex-1 min-h-0">
+      {/* Results Panel - Flexible Height with Fixed Table */}
+      <div className="results-panel">
         <div className="h-full p-6 flex flex-col bg-background">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground">Results</h2>
@@ -394,14 +394,14 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
               </div>
               <div
                 ref={tableContainerRef}
-                className="flex-1 overflow-auto table-container min-h-0 border border-border rounded-lg"
+                className="flex-1 overflow-auto border border-border rounded-lg min-h-0"
               >
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                <Table className="data-table">
+                  <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id} className="font-semibold h-12 px-4">
+                          <TableHead key={header.id}>
                             {header.isPlaceholder
                               ? null
                               : flexRender(
@@ -415,16 +415,13 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
                   </TableHeader>
                   <TableBody>
                     {table.getRowModel().rows?.length ? (
-                      table.getRowModel().rows.map((row, index) => (
+                      table.getRowModel().rows.map((row) => (
                         <TableRow
                           key={row.id}
                           data-state={row.getIsSelected() && "selected"}
-                          className={`hover:bg-muted/50 transition-colors h-12 ${
-                            index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                          }`}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="px-4 py-3 align-top">
+                            <TableCell key={cell.id}>
                               {flexRender(
                                 cell.column.columnDef.cell,
                                 cell.getContext()
