@@ -76,14 +76,29 @@ export function ConnectionsSidebar({ onLoadQuery, refreshTrigger }: ConnectionsS
               variant="ghost"
               size="sm"
               onClick={handleToggle}
-              className="h-8 w-8 p-0"
+              className={cn(
+                "h-8 w-8 p-0 transition-all duration-200 hover:scale-110",
+                "bg-primary/10 hover:bg-primary/20 text-primary",
+                "border border-primary/20 hover:border-primary/30",
+                "shadow-sm hover:shadow-md",
+                "relative overflow-hidden group"
+              )}
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {isCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
+              {/* Animated background highlight */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              {/* Icon with enhanced styling */}
+              <div className="relative z-10 transition-transform duration-200 group-hover:scale-110">
+                {isCollapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+              </div>
+              
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 rounded-md bg-primary/20 opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300" />
             </Button>
           </div>
         </div>
