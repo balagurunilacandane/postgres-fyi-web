@@ -264,7 +264,7 @@ html {
 }
 
 .resize-handle {
-  @apply relative h-2 bg-border hover:bg-primary/20 cursor-row-resize transition-colors flex items-center justify-center group;
+  @apply relative h-2 bg-border hover:bg-primary/20 cursor-row-resize transition-colors flex items-center justify-center;
 }
 
 .resize-handle.resizing {
