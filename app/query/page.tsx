@@ -106,7 +106,7 @@ interface QueryPageProps {
 }
 
 export default function QueryPage({ onQuerySaved }: QueryPageProps) {
-  const [query, setQuery] = useState("SELECT * FROM information_schema.tables LIMIT 10;");
+  const [query, setQuery] = useState(""); // Start with empty query
   const [result, setResult] = useState<TableRow[]>([]);
   const [fields, setFields] = useState<TableField[]>([]);
   const [loading, setLoading] = useState(false);
@@ -303,10 +303,10 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
   };
 
   return (
-    <div className="layout-container">
-      {/* Query Editor Panel - Fixed Height */}
-      <div className="query-editor-panel">
-        <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col">
+      {/* Query Editor Section - Top Half */}
+      <div className="h-1/2 border-b border-border bg-card flex flex-col">
+        <div className="flex-1 p-6 flex flex-col min-h-0">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-foreground">Query Editor</h1>
             <div className="flex items-center gap-2">
@@ -335,9 +335,9 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
         </div>
       </div>
       
-      {/* Results Panel - Flexible Height with Fixed Table */}
-      <div className="results-panel">
-        <div className="h-full p-6 flex flex-col bg-background">
+      {/* Results Section - Bottom Half */}
+      <div className="h-1/2 flex flex-col min-h-0">
+        <div className="flex-1 p-6 flex flex-col bg-background min-h-0">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground">Results</h2>
             {result.length > 0 && (
