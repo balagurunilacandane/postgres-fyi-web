@@ -233,7 +233,7 @@ html {
   @apply whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs;
 }
 
-/* Fixed layout containers */
+/* Fixed layout containers for proper height management */
 .layout-container {
   @apply h-screen w-full flex flex-col;
 }
@@ -254,13 +254,31 @@ html {
   @apply flex-1 overflow-hidden;
 }
 
-/* Query editor specific styles */
+/* Query editor specific styles - Constrained height management */
 .query-editor-panel {
-  @apply h-80 border-b border-border bg-card flex-shrink-0;
+  @apply border-b border-border bg-card flex-shrink-0;
+  height: 50vh; /* Explicit 50% viewport height */
+  min-height: 300px; /* Minimum height for usability */
+  max-height: 50vh; /* Maximum height constraint */
 }
 
+.query-editor-content {
+  @apply h-full flex flex-col min-h-0;
+}
+
+.query-editor-controls {
+  @apply flex-shrink-0 p-6 border-b border-border;
+}
+
+.query-editor-monaco {
+  @apply flex-1 min-h-0;
+}
+
+/* Results panel specific styles */
 .results-panel {
   @apply flex-1 min-h-0;
+  height: 50vh; /* Explicit 50% viewport height */
+  max-height: 50vh; /* Maximum height constraint */
 }
 
 /* Table page specific styles */
@@ -270,4 +288,26 @@ html {
 
 .table-page-content {
   @apply flex-1 min-h-0 p-6;
+}
+
+/* Monaco Editor container constraints */
+.monaco-editor-container {
+  @apply h-full overflow-hidden;
+}
+
+.monaco-editor-container .monaco-editor {
+  @apply h-full;
+}
+
+/* Responsive height adjustments */
+@media (max-height: 600px) {
+  .query-editor-panel {
+    min-height: 200px;
+  }
+}
+
+@media (max-height: 400px) {
+  .query-editor-panel {
+    min-height: 150px;
+  }
 }

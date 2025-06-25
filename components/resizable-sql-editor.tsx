@@ -53,19 +53,51 @@ export function ResizableSqlEditor({
 }: ResizableSqlEditorProps) {
   const { theme, resolvedTheme } = useTheme();
   const editorRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [editorHeight, setEditorHeight] = useState(400);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [queryName, setQueryName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editorHeight, setEditorHeight] = useState(0);
   const { toast } = useToast();
-
-  const MIN_HEIGHT = 200;
-  const MAX_HEIGHT = 800;
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Calculate available height for editor
+  useEffect(() => {
+    const calculateHeight = () => {
+      if (containerRef.current) {
+        const containerHeight = containerRef.current.clientHeight;
+        // Reserve space for controls (approximately 120px)
+        const availableHeight = Math.max(200, containerHeight - 120);
+        setEditorHeight(availableHeight);
+      }
+    };
+
+    calculateHeight();
+    
+    // Recalculate on window resize
+    const handleResize = () => {
+      calculateHeight();
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    // Use ResizeObserver for more accurate container size tracking
+    const resizeObserver = new ResizeObserver(() => {
+      calculateHeight();
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
@@ -336,33 +368,11 @@ export function ResizableSqlEditor({
     }
   };
 
-  // Handle resize functionality
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
-    const startY = e.clientY;
-    const startHeight = editorHeight;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaY = e.clientY - startY;
-      const newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startHeight + deltaY));
-      setEditorHeight(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
   if (!mounted) {
     return (
       <div
-        className="flex items-center justify-center border rounded-md bg-muted/50"
-        style={{ height: `${editorHeight}px` }}
+        ref={containerRef}
+        className="flex items-center justify-center border rounded-md bg-muted/50 h-full"
       >
         <LoadingSpinner />
       </div>
@@ -370,90 +380,92 @@ export function ResizableSqlEditor({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Editor Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={onRun}
-            disabled={loading || !value.trim()}
-            size="sm"
-            className="gap-2"
-          >
-            {loading ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-            Run Query
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Ctrl+Enter to run
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveQuery}
-            disabled={!value.trim() || readOnly}
-            className="gap-2"
-          >
-            <Save className="h-4 w-4" />
-            Save Query
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadQuery}
-            disabled={!value.trim()}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleLoadQuery}>
-            <Upload className="h-4 w-4" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={formatQuery}>
-                Format Query
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  if (editorRef.current) {
-                    editorRef.current.focus();
-                  }
-                }}
-              >
-                Focus Editor
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  onChange("");
-                  toast({
-                    title: "Success",
-                    description: "Editor cleared",
-                  });
-                }}
-              >
-                Clear Editor
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div ref={containerRef} className="h-full flex flex-col">
+      {/* Editor Controls - Fixed Height */}
+      <div className="flex-shrink-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={onRun}
+              disabled={loading || !value.trim()}
+              size="sm"
+              className="gap-2"
+            >
+              {loading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              Run Query
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Ctrl+Enter to run
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveQuery}
+              disabled={!value.trim() || readOnly}
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save Query
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadQuery}
+              disabled={!value.trim()}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleLoadQuery}>
+              <Upload className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={formatQuery}>
+                  Format Query
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (editorRef.current) {
+                      editorRef.current.focus();
+                    }
+                  }}
+                >
+                  Focus Editor
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onChange("");
+                    toast({
+                      title: "Success",
+                      description: "Editor cleared",
+                    });
+                  }}
+                >
+                  Clear Editor
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
-      {/* Resizable Editor Container */}
-      <div className="relative">
+      {/* Editor Container - Flexible Height with Constraints */}
+      <div className="flex-1 min-h-0 mt-4">
         <div 
-          className="border rounded-md overflow-hidden"
-          style={{ height: `${editorHeight}px` }}
+          className="border rounded-md overflow-hidden h-full"
+          style={{ height: editorHeight > 0 ? `${editorHeight}px` : '100%' }}
         >
           <Editor
             height="100%"
@@ -463,7 +475,7 @@ export function ResizableSqlEditor({
             onMount={handleEditorDidMount}
             theme={resolvedTheme === "dark" ? "vs-dark" : "vs"}
             options={{
-              minimap: { enabled: editorHeight > 500 },
+              minimap: { enabled: editorHeight > 400 },
               fontSize: 14,
               lineNumbers: "on",
               roundedSelection: false,
@@ -500,21 +512,6 @@ export function ResizableSqlEditor({
             }}
           />
         </div>
-        
-        {/* Resize Handle */}
-        <div
-          className={`absolute bottom-0 left-0 right-0 h-2 cursor-row-resize bg-transparent hover:bg-primary/20 transition-colors ${
-            isResizing ? "bg-primary/30" : ""
-          }`}
-          onMouseDown={handleMouseDown}
-        >
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-muted-foreground/30 rounded-full" />
-        </div>
-      </div>
-
-      {/* Height Indicator */}
-      <div className="text-xs text-muted-foreground text-right">
-        Editor height: {editorHeight}px (min: {MIN_HEIGHT}px, max: {MAX_HEIGHT}px)
       </div>
 
       {/* Save Query Dialog */}
