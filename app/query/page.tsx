@@ -13,7 +13,7 @@ import {
   VisibilityState,
   flexRender,
 } from "@tanstack/react-table";
-import { ChevronDown, Copy, Download, Filter, MoreHorizontal } from "lucide-react";
+import { ChevronDown, Copy, Download, Filter, MoreHorizontal, GripHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -113,6 +113,11 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
 
+  // Resizable layout state
+  const [editorHeight, setEditorHeight] = useState(50); // Percentage of viewport height
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -136,6 +141,37 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
       window.removeEventListener('loadQuery', handleLoadQuery as EventListener);
     };
   }, []);
+
+  // Resize functionality
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+
+    const startY = e.clientY;
+    const startHeight = editorHeight;
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    
+    if (!containerRect) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = e.clientY - startY;
+      const containerHeight = containerRect.height;
+      const deltaPercentage = (deltaY / containerHeight) * 100;
+      
+      // Constrain between 20% and 80%
+      const newHeight = Math.min(80, Math.max(20, startHeight + deltaPercentage));
+      setEditorHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [editorHeight]);
 
   // Infinite scroll fetch
   const fetchQueryData = useCallback(
@@ -303,9 +339,12 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Query Editor Section - Top Half */}
-      <div className="h-1/2 border-b border-border bg-card flex flex-col">
+    <div ref={containerRef} className="h-full flex flex-col bg-background">
+      {/* Query Editor Section - Resizable */}
+      <div 
+        className="border-b border-border bg-card flex flex-col"
+        style={{ height: `${editorHeight}vh` }}
+      >
         <div className="flex-1 p-6 flex flex-col min-h-0">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-foreground">Query Editor</h1>
@@ -334,9 +373,25 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Resize Handle */}
+      <div
+        className={`relative h-2 bg-border hover:bg-primary/20 cursor-row-resize transition-colors flex items-center justify-center group ${
+          isResizing ? 'bg-primary/30' : ''
+        }`}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-px bg-border" />
+      </div>
       
-      {/* Results Section - Bottom Half */}
-      <div className="h-1/2 flex flex-col min-h-0">
+      {/* Results Section - Flexible */}
+      <div 
+        className="flex flex-col min-h-0"
+        style={{ height: `${100 - editorHeight}vh` }}
+      >
         <div className="flex-1 p-6 flex flex-col bg-background min-h-0">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground">Results</h2>
