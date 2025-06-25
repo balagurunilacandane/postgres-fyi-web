@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import { ConnectionsSidebar } from "@/components/connections-sidebar";
-import { CollapsibleSidebar } from "@/components/collapsible-sidebar";
 import { DatabaseConnectionStatus } from "@/components/database-connection-status";
 
 interface AppLayoutProps {
@@ -14,12 +13,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  // Determine which sidebar to show based on the current route
-  const isConnectionsPage = pathname === "/connections";
-  const isGetStartedPage = pathname === "/get-started";
-  const isQueryPage = pathname === "/query";
-  
   // Don't show layout on get-started page (it has its own layout)
+  const isGetStartedPage = pathname === "/get-started";
+  
   if (isGetStartedPage) {
     return <>{children}</>;
   }
@@ -37,17 +33,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="h-screen w-full bg-background flex">
-      {/* Fixed Sidebar */}
+      {/* Fixed Sidebar - Same for all pages */}
       <div className="flex-shrink-0">
-        {isConnectionsPage ? (
-          <ConnectionsSidebar />
-        ) : (
-          <CollapsibleSidebar 
-            onLoadQuery={handleLoadQuery}
-            refreshTrigger={refreshTrigger}
-            hideTablesSection={isQueryPage}
-          />
-        )}
+        <ConnectionsSidebar 
+          onLoadQuery={handleLoadQuery}
+          refreshTrigger={refreshTrigger}
+        />
       </div>
       
       {/* Main Content Area */}

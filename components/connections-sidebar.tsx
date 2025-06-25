@@ -9,11 +9,17 @@ import RecentConnectionsList from "@/components/recent_connections_list";
 import { DatabaseSchemaSection } from "@/components/database-schema-section";
 import { SavedQueriesSearchSection } from "@/components/saved-queries-search-section";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
-export function ConnectionsSidebar() {
+interface ConnectionsSidebarProps {
+  onLoadQuery?: (query: string) => void;
+  refreshTrigger?: number;
+}
+
+export function ConnectionsSidebar({ onLoadQuery, refreshTrigger }: ConnectionsSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Persist sidebar state in localStorage
   useEffect(() => {
@@ -36,6 +42,11 @@ export function ConnectionsSidebar() {
   const handleGetStarted = () => {
     router.push("/get-started");
   };
+
+  // Determine if we should show the database schema section
+  const isConnectionsPage = pathname === "/connections";
+  const isQueryPage = pathname === "/query";
+  const isTablePage = pathname === "/table";
 
   return (
     <aside
@@ -120,11 +131,18 @@ export function ConnectionsSidebar() {
               <RecentConnectionsList />
             </div>
             
-            {/* Saved Queries with Search */}
-            <SavedQueriesSearchSection />
+            {/* Saved Queries with Search - Show on query and table pages */}
+            {(isQueryPage || isTablePage) && (
+              <SavedQueriesSearchSection 
+                onLoadQuery={onLoadQuery}
+                refreshTrigger={refreshTrigger}
+              />
+            )}
             
-            {/* Database Schema */}
-            <DatabaseSchemaSection />
+            {/* Database Schema - Show on query and table pages */}
+            {(isQueryPage || isTablePage) && (
+              <DatabaseSchemaSection />
+            )}
           </div>
         </div>
       )}

@@ -42,7 +42,7 @@ interface SavedQueriesSearchSectionProps {
 }
 
 export function SavedQueriesSearchSection({ onLoadQuery, refreshTrigger }: SavedQueriesSearchSectionProps) {
-  const [isOpen, setIsOpen] = useState(false); // Changed from true to false
+  const [isOpen, setIsOpen] = useState(false);
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [filteredQueries, setFilteredQueries] = useState<SavedQuery[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +94,31 @@ export function SavedQueriesSearchSection({ onLoadQuery, refreshTrigger }: Saved
       loadSavedQueries();
     }
   }, [refreshTrigger, isOpen]);
+
+  // Listen for real-time updates when queries are saved
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "saved_queries" && isOpen) {
+        loadSavedQueries();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Also listen for custom events for same-tab updates
+    const handleQuerySaved = () => {
+      if (isOpen) {
+        loadSavedQueries();
+      }
+    };
+
+    window.addEventListener("querySaved", handleQuerySaved);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("querySaved", handleQuerySaved);
+    };
+  }, [isOpen]);
 
   // Filter queries based on search term
   useEffect(() => {
