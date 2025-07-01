@@ -22,6 +22,7 @@ import {
   Home,
   Users,
   Linkedin,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -30,33 +31,33 @@ import { cn } from "@/lib/utils";
 const installationSteps = [
   {
     id: 1,
-    title: "Install postgres-fyi package",
-    description: "Install the systemctl package using apt-get package manager",
-    command: "sudo apt-get install postgres-fyi",
-    note: "This will download and install the postgres-fyi service on your system",
+    title: "Quick Install",
+    description: "Run this single command in your Linux machine to install PostgreSQL FYI",
+    command: "curl -sSL https://raw.githubusercontent.com/AkbarHabeeb/postgresql-fyi-e2e/main/remote-install.sh | bash",
+    note: "This will download and install the PostgreSQL FYI service on your system",
     icon: Download,
     color: "blue",
   },
   {
     id: 2,
-    title: "Start the service",
-    description: "Start the postgres-fyi service using systemctl",
-    command: "sudo systemctl start postgres-fyi",
-    note: "The service will start and be ready to accept connections immediately",
-    icon: Play,
-    color: "green",
-  },
-  {
-    id: 3,
     title: "Service runs on port 6240",
-    description: "The service automatically runs on port 6240",
+    description: "The service automatically runs on port 6240 after installation",
     command: "# Service available at http://localhost:6240",
-    note: "No additional configuration needed - the service is ready to use",
+    note: "No additional configuration needed - the service is ready to use immediately",
     icon: Server,
-    color: "purple",
+    color: "green",
     isInfo: true,
   },
 ];
+
+const uninstallStep = {
+  title: "Uninstall (if needed)",
+  description: "Run this command to completely remove PostgreSQL FYI from your system",
+  command: "curl -fsSL https://raw.githubusercontent.com/AkbarHabeeb/postgresql-fyi-e2e/main/scripts/uninstall.sh | sudo bash",
+  note: "This will completely remove the service and all related files",
+  icon: Trash2,
+  color: "red",
+};
 
 const features = [
   {
@@ -69,8 +70,8 @@ const features = [
 const troubleshootingItems = [
   {
     issue: "Permission denied during installation",
-    solution: "Make sure you have sudo privileges and run the command with sudo",
-    command: "sudo apt-get update && sudo apt-get install postgres-fyi",
+    solution: "Make sure you have sudo privileges and the script will handle permissions automatically",
+    command: "# The installation script handles permissions automatically",
   },
   {
     issue: "Service fails to start",
@@ -80,7 +81,7 @@ const troubleshootingItems = [
   {
     issue: "Cannot connect to service",
     solution: "Verify the service is running and check firewall settings",
-    command: "sudo systemctl status postgres-fyi",
+    command: "sudo systemctl status postgresql-fyi",
   },
 ];
 
@@ -134,6 +135,7 @@ export default function GetStartedPage() {
       blue: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
       green: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
       purple: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+      red: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     };
     return colors[color as keyof typeof colors] || colors.blue;
   };
@@ -188,11 +190,11 @@ export default function GetStartedPage() {
             Quick Setup Guide
           </div>
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Welcome to PostgreSQL FYI
+            PostgreSQL FYI Service 🐘
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Get up and running in minutes with our powerful PostgreSQL database management tool. 
-            Follow these simple steps to install and configure the service.
+            One simple command installs everything you need.
           </p>
         </div>
 
@@ -213,7 +215,7 @@ export default function GetStartedPage() {
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-8">
             <Terminal className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold text-foreground">Installation Steps</h2>
+            <h2 className="text-2xl font-bold text-foreground">🚀 Quick Install</h2>
           </div>
 
           <div className="space-y-6">
@@ -246,7 +248,7 @@ export default function GetStartedPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <CardTitle className="text-lg">
-                            Step {step.id}: {step.title}
+                            {step.title}
                           </CardTitle>
                           {isCompleted && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full dark:bg-green-900/30 dark:text-green-400">
@@ -287,7 +289,7 @@ export default function GetStartedPage() {
                           </Button>
                         )}
                       </div>
-                      <code className="block font-mono text-sm text-foreground bg-background/50 p-3 rounded border">
+                      <code className="block font-mono text-sm text-foreground bg-background/50 p-3 rounded border break-all">
                         {step.command}
                       </code>
                     </div>
@@ -310,7 +312,7 @@ export default function GetStartedPage() {
                           Mark as Complete
                         </Button>
                       )}
-                      {step.id === 3 && (
+                      {step.id === 2 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -329,6 +331,71 @@ export default function GetStartedPage() {
           </div>
         </div>
 
+        {/* Uninstall Section */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <Trash2 className="h-6 w-6 text-red-500" />
+            <h2 className="text-2xl font-bold text-foreground">Uninstall Steps</h2>
+          </div>
+
+          <Card className="border-red-200 dark:border-red-800">
+            <CardHeader className="pb-4">
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  "flex items-center justify-center w-12 h-12 rounded-lg border-2 transition-all",
+                  getStepColor(uninstallStep.color)
+                )}>
+                  <Trash2 className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-lg text-red-700 dark:text-red-400">
+                    {uninstallStep.title}
+                  </CardTitle>
+                  <p className="text-muted-foreground mt-2">{uninstallStep.description}</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wide">
+                    Uninstall Command
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyCommand(uninstallStep.command, 0)}
+                    className="h-8 gap-2 text-red-600 hover:text-red-700 dark:text-red-400"
+                    disabled={copiedCommand === uninstallStep.command}
+                  >
+                    {copiedCommand === uninstallStep.command ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <code className="block font-mono text-sm text-red-700 dark:text-red-300 bg-background/50 p-3 rounded border break-all">
+                  {uninstallStep.command}
+                </code>
+              </div>
+
+              <Alert className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
+                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <AlertDescription className="text-red-700 dark:text-red-300">
+                  {uninstallStep.note}
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Next Steps */}
         <Card className="mb-12 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 dark:from-green-950/20 dark:to-emerald-950/20 dark:border-green-800">
           <CardHeader>
@@ -339,7 +406,7 @@ export default function GetStartedPage() {
           </CardHeader>
           <CardContent>
             <p className="text-green-700 dark:text-green-300 mb-6 leading-relaxed">
-              Once the service is running, you can start creating database connections and querying your PostgreSQL databases. 
+              Once the service is running on port 6240, you can start creating database connections and querying your PostgreSQL databases. 
               The interface provides powerful tools for database management, query execution, and data visualization.
             </p>
             <div className="flex justify-center">
@@ -413,12 +480,12 @@ export default function GetStartedPage() {
                   <p className="text-muted-foreground mb-3">{item.solution}</p>
                   <div className="bg-muted/50 border border-border rounded p-3">
                     <div className="flex items-center justify-between">
-                      <code className="text-sm font-mono text-foreground">{item.command}</code>
+                      <code className="text-sm font-mono text-foreground break-all">{item.command}</code>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleCopyCommand(item.command, 0)}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 ml-2 flex-shrink-0"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
