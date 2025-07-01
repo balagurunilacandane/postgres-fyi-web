@@ -214,7 +214,7 @@ export function ResizableSqlEditor({
       },
     });
 
-    // Add keyboard shortcuts
+    // Add keyboard shortcuts - Fixed implementation
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       if (onRun && !loading) {
         onRun();
@@ -222,10 +222,42 @@ export function ResizableSqlEditor({
     });
 
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, (e: any) => {
-      e.preventDefault();
+      e?.preventDefault?.();
       handleSaveQuery();
     });
+
+    // Also add global keyboard event listener as backup
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (onRun && !loading && editor.hasTextFocus()) {
+          onRun();
+        }
+      }
+    };
+
+    // Add event listener to the editor's DOM element
+    const editorDomNode = editor.getDomNode();
+    if (editorDomNode) {
+      editorDomNode.addEventListener('keydown', handleKeyDown);
+    }
+
+    // Store cleanup function
+    editor._keydownCleanup = () => {
+      if (editorDomNode) {
+        editorDomNode.removeEventListener('keydown', handleKeyDown);
+      }
+    };
   };
+
+  // Cleanup keyboard listeners when component unmounts
+  useEffect(() => {
+    return () => {
+      if (editorRef.current?._keydownCleanup) {
+        editorRef.current._keydownCleanup();
+      }
+    };
+  }, []);
 
   const handleDownloadQuery = () => {
     if (!value.trim()) {

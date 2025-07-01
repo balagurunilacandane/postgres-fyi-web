@@ -86,7 +86,7 @@ const troubleshootingItems = [
 
 const contributors = [
   {
-    name: "Balagurunil Acandane",
+    name: "Balaguru Nilacandane",
     linkedin: "https://www.linkedin.com/in/balagurunilacandane/",
   },
   {
