@@ -97,13 +97,7 @@ export default function TablePage() {
   const router = useRouter();
   // Get table name from localStorage (client-side only)
   const [tableName, setTableName] = useState<string>("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("current_active_table");
-      setTableName(stored || "");
-    }
-  }, []);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [result, setResult] = useState<TableRow[]>([]);
   const [fields, setFields] = useState<TableField[]>([]);
@@ -120,16 +114,96 @@ export default function TablePage() {
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
+  // Initialize table name from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("current_active_table");
+      setTableName(stored || "");
+      setIsInitialized(true);
+    }
+  }, []);
+
+  // Listen for localStorage changes to current_active_table
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "current_active_table") {
+        const newTableName = e.newValue || "";
+        console.log(`Table changed from ${tableName} to ${newTableName}`);
+        setTableName(newTableName);
+        // Reset table state when table changes
+        setResult([]);
+        setFields([]);
+        setOffset(0);
+        setSorting([]);
+        setColumnFilters([]);
+        setColumnVisibility({});
+        setRowSelection({});
+      }
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener("storage", handleStorageChange);
+
+    // Also listen for custom events for same-tab updates
+    const handleCustomTableChange = (event: CustomEvent) => {
+      const newTableName = event.detail || "";
+      console.log(`Table changed via custom event from ${tableName} to ${newTableName}`);
+      if (newTableName !== tableName) {
+        setTableName(newTableName);
+        // Reset table state when table changes
+        setResult([]);
+        setFields([]);
+        setOffset(0);
+        setSorting([]);
+        setColumnFilters([]);
+        setColumnVisibility({});
+        setRowSelection({});
+      }
+    };
+
+    window.addEventListener("tableChanged", handleCustomTableChange as EventListener);
+
+    // Periodic check for localStorage changes (fallback for same-tab updates)
+    const intervalId = setInterval(() => {
+      const currentTableName = localStorage.getItem("current_active_table") || "";
+      if (currentTableName !== tableName) {
+        console.log(`Table changed via polling from ${tableName} to ${currentTableName}`);
+        setTableName(currentTableName);
+        // Reset table state when table changes
+        setResult([]);
+        setFields([]);
+        setOffset(0);
+        setSorting([]);
+        setColumnFilters([]);
+        setColumnVisibility({});
+        setRowSelection({});
+      }
+    }, 1000); // Check every second
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("tableChanged", handleCustomTableChange as EventListener);
+      clearInterval(intervalId);
+    };
+  }, [tableName, isInitialized]);
+
   // Fetch data with limit/offset
   const fetchTableData = useCallback(
     async (append = false) => {
+      if (!tableName) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const connectionId =
         typeof window !== "undefined"
           ? localStorage.getItem("current_conn_id")
           : null;
 
-      if (!connectionId || !tableName) {
+      if (!connectionId) {
         setLoading(false);
         return;
       }
@@ -150,7 +224,8 @@ export default function TablePage() {
         setFields(apiData.fields || []);
         // If less than LIMIT rows returned, no more data
         setHasMore((apiData.rows?.length || 0) === LIMIT);
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch table data:", error);
         if (!append) {
           setResult([]);
           setFields([]);
@@ -165,9 +240,11 @@ export default function TablePage() {
 
   // Initial load and when tableName changes
   useEffect(() => {
-    setOffset(0);
-    fetchTableData(false);
-  }, [tableName, fetchTableData]);
+    if (isInitialized && tableName) {
+      setOffset(0);
+      fetchTableData(false);
+    }
+  }, [tableName, isInitialized, fetchTableData]);
 
   // Infinite scroll handler
   useEffect(() => {
@@ -224,9 +301,51 @@ export default function TablePage() {
   const handleBackToQuery = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("current_active_table");
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent("tableChanged", { detail: "" }));
     }
     router.push("/query");
   };
+
+  // Show loading state while initializing
+  if (!isInitialized) {
+    return (
+      <div className="layout-container">
+        <div className="flex items-center justify-center h-full">
+          <LoadingSpinner size="lg" />
+          <span className="ml-3 text-muted-foreground">Initializing...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no table is selected
+  if (!tableName) {
+    return (
+      <div className="layout-container">
+        <div className="table-page-header">
+          <div className="flex items-center gap-4 mb-4">
+            <Button
+              variant="outline"
+              onClick={handleBackToQuery}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Query Page
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                No Table Selected
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Please select a table from the database schema to view its data
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="layout-container">

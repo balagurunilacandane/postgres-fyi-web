@@ -94,11 +94,25 @@ export function DatabaseSchemaSection() {
     setOpenTables(newOpenTables);
   };
 
-  // Navigate to table view
+  // Navigate to table view with enhanced localStorage management
   const handleTableClick = (table: string) => {
     if (typeof window !== "undefined") {
+      // Set the new table name
       localStorage.setItem("current_active_table", table);
+      
+      // Dispatch custom event for same-tab updates
+      window.dispatchEvent(new CustomEvent("tableChanged", { detail: table }));
+      
+      // Dispatch storage event manually for same-tab detection
+      window.dispatchEvent(new StorageEvent("storage", {
+        key: "current_active_table",
+        newValue: table,
+        oldValue: localStorage.getItem("current_active_table"),
+        storageArea: localStorage,
+        url: window.location.href
+      }));
     }
+    
     router.push("/table");
   };
 
