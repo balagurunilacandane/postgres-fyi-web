@@ -34,19 +34,9 @@ const installationSteps = [
     title: "Quick Install",
     description: "Run this single command in your Linux machine to install PostgreSQL FYI",
     command: "curl -sSL https://raw.githubusercontent.com/AkbarHabeeb/postgresql-fyi-e2e/main/remote-install.sh | bash",
-    note: "This will download and install the PostgreSQL FYI service on your system",
+    note: "This will download and install the PostgreSQL FYI service on your system. The service will automatically start and run on port 6240.",
     icon: Download,
     color: "blue",
-  },
-  {
-    id: 2,
-    title: "Service runs on port 6240",
-    description: "The service automatically runs on port 6240 after installation",
-    command: "# Service available at http://localhost:6240",
-    note: "No additional configuration needed - the service is ready to use immediately",
-    icon: Server,
-    color: "green",
-    isInfo: true,
   },
 ];
 
@@ -125,7 +115,7 @@ export default function GetStartedPage() {
       setCompletedSteps([...completedSteps, stepId]);
       toast({
         title: "Step completed!",
-        description: `Step ${stepId} marked as complete`,
+        description: `Installation step marked as complete`,
       });
     }
   };
@@ -169,7 +159,7 @@ export default function GetStartedPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                {completedSteps.length}/{installationSteps.length} steps completed
+                {completedSteps.length}/{installationSteps.length} step completed
               </span>
               <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                 <div 
@@ -265,29 +255,27 @@ export default function GetStartedPage() {
                     <div className="bg-muted/50 border border-border rounded-lg p-4 mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          {step.isInfo ? "Information" : "Command"}
+                          Installation Command
                         </span>
-                        {!step.isInfo && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopyCommand(step.command, step.id)}
-                            className="h-8 gap-2"
-                            disabled={copiedCommand === step.command}
-                          >
-                            {copiedCommand === step.command ? (
-                              <>
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                Copied!
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-4 w-4" />
-                                Copy
-                              </>
-                            )}
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyCommand(step.command, step.id)}
+                          className="h-8 gap-2"
+                          disabled={copiedCommand === step.command}
+                        >
+                          {copiedCommand === step.command ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4" />
+                              Copy
+                            </>
+                          )}
+                        </Button>
                       </div>
                       <code className="block font-mono text-sm text-foreground bg-background/50 p-3 rounded border break-all">
                         {step.command}
@@ -302,7 +290,7 @@ export default function GetStartedPage() {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-3">
-                      {!isCompleted && !step.isInfo && (
+                      {!isCompleted && (
                         <Button
                           onClick={() => handleStepComplete(step.id)}
                           className="gap-2"
@@ -312,17 +300,15 @@ export default function GetStartedPage() {
                           Mark as Complete
                         </Button>
                       )}
-                      {step.id === 2 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          onClick={() => window.open("http://localhost:6240", "_blank")}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Test Connection
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => window.open("http://localhost:6240", "_blank")}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Test Connection
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -459,7 +445,7 @@ export default function GetStartedPage() {
         </Card>
 
         {/* Troubleshooting */}
-        <Card className="mb-8">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <AlertTriangle className="h-6 w-6 text-amber-500" />
@@ -496,19 +482,6 @@ export default function GetStartedPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <div className="text-center py-8 border-t border-border">
-          <p className="text-muted-foreground mb-4">
-            Need more help? Check out our documentation or contact support.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button variant="outline" size="sm" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              Documentation
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   );
