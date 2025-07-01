@@ -6,12 +6,9 @@ const api = axios.create({
   timeout: 5000,
 })
 
-// Add Referrer-Policy header to all requests (set to a valid value, e.g. 'no-referrer-when-downgrade')
+// Add request interceptor for logging
 api.interceptors.request.use(
   config => {
-    if (config.headers) {
-      config.headers["Referrer-Policy"] = "no-referrer-when-downgrade";
-    }
     console.log(`➡️ ${config.method?.toUpperCase()} ${config.url}`)
     return config;
   },
