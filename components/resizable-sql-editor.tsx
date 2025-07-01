@@ -56,6 +56,7 @@ export function ResizableSqlEditor({
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const commandsRef = useRef<any[]>([]);
   const [mounted, setMounted] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [queryName, setQueryName] = useState("");
@@ -71,7 +72,7 @@ export function ResizableSqlEditor({
   useCtrlEnter(
     () => {
       console.log('Ctrl+Enter triggered via hook');
-      if (onRun && !loading && !readOnly) {
+      if (onRun && !loading && !readOnly && value.trim()) {
         onRun();
         toast({
           title: "Query Executed",
@@ -232,33 +233,53 @@ export function ResizableSqlEditor({
       },
     });
 
-    // Enhanced Monaco Editor keyboard shortcuts
-    const runQueryCommand = editor.addCommand(
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-      () => {
-        console.log('Monaco Ctrl+Enter command triggered');
-        if (onRun && !loading && !readOnly) {
-          onRun();
+    // Clear any existing commands
+    commandsRef.current.forEach(command => {
+      try {
+        if (command && typeof command.dispose === 'function') {
+          command.dispose();
         }
+      } catch (error) {
+        console.warn('Error disposing command:', error);
       }
-    );
+    });
+    commandsRef.current = [];
 
-    const saveQueryCommand = editor.addCommand(
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
-      (e: any) => {
-        e?.preventDefault?.();
-        handleSaveQuery();
-      }
-    );
+    // Enhanced Monaco Editor keyboard shortcuts with proper disposal tracking
+    try {
+      const runQueryCommand = editor.addCommand(
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+        () => {
+          console.log('Monaco Ctrl+Enter command triggered');
+          if (onRun && !loading && !readOnly && value.trim()) {
+            onRun();
+          }
+        }
+      );
+
+      const saveQueryCommand = editor.addCommand(
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+        (e: any) => {
+          e?.preventDefault?.();
+          handleSaveQuery();
+        }
+      );
+
+      // Store commands for proper disposal
+      if (runQueryCommand) commandsRef.current.push(runQueryCommand);
+      if (saveQueryCommand) commandsRef.current.push(saveQueryCommand);
+    } catch (error) {
+      console.warn('Error adding Monaco commands:', error);
+    }
 
     // Additional cross-browser keyboard event handling
-    const handleEditorKeyDown = (e: any) => {
+    const handleEditorKeyDown = (e: KeyboardEvent) => {
       // Handle Ctrl+Enter with multiple detection methods
       if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.keyCode === 13)) {
         e.preventDefault();
         e.stopPropagation();
         console.log('Editor keydown Ctrl+Enter detected');
-        if (onRun && !loading && !readOnly) {
+        if (onRun && !loading && !readOnly && value.trim()) {
           onRun();
         }
       }
@@ -277,22 +298,32 @@ export function ResizableSqlEditor({
       editorDomNode.addEventListener('keydown', handleEditorKeyDown, true);
     }
 
-    // Store cleanup function
+    // Store cleanup function on editor instance
     editor._keydownCleanup = () => {
       if (editorDomNode) {
         editorDomNode.removeEventListener('keydown', handleEditorKeyDown, true);
       }
-      if (runQueryCommand) {
-        runQueryCommand.dispose();
-      }
-      if (saveQueryCommand) {
-        saveQueryCommand.dispose();
-      }
+      
+      // Dispose Monaco commands safely
+      commandsRef.current.forEach(command => {
+        try {
+          if (command && typeof command.dispose === 'function') {
+            command.dispose();
+          }
+        } catch (error) {
+          console.warn('Error disposing command during cleanup:', error);
+        }
+      });
+      commandsRef.current = [];
     };
 
     // Focus the editor after mount
     setTimeout(() => {
-      editor.focus();
+      try {
+        editor.focus();
+      } catch (error) {
+        console.warn('Error focusing editor:', error);
+      }
     }, 100);
   };
 
@@ -300,8 +331,24 @@ export function ResizableSqlEditor({
   useEffect(() => {
     return () => {
       if (editorRef.current?._keydownCleanup) {
-        editorRef.current._keydownCleanup();
+        try {
+          editorRef.current._keydownCleanup();
+        } catch (error) {
+          console.warn('Error during editor cleanup:', error);
+        }
       }
+      
+      // Additional cleanup for commands
+      commandsRef.current.forEach(command => {
+        try {
+          if (command && typeof command.dispose === 'function') {
+            command.dispose();
+          }
+        } catch (error) {
+          console.warn('Error disposing command during unmount:', error);
+        }
+      });
+      commandsRef.current = [];
     };
   }, []);
 
@@ -362,11 +409,18 @@ export function ResizableSqlEditor({
 
   const formatQuery = () => {
     if (editorRef.current) {
-      editorRef.current.getAction("editor.action.formatDocument").run();
-      toast({
-        title: "Success",
-        description: "Query formatted",
-      });
+      try {
+        editorRef.current.getAction("editor.action.formatDocument").run();
+        toast({
+          title: "Success",
+          description: "Query formatted",
+        });
+      } catch (error) {
+        toast({
+          title: "Warning",
+          description: "Format action not available",
+        });
+      }
     }
   };
 
@@ -448,7 +502,7 @@ export function ResizableSqlEditor({
 
   // Enhanced run query handler with feedback
   const handleRunQuery = () => {
-    if (onRun && !loading && !readOnly) {
+    if (onRun && !loading && !readOnly && value.trim()) {
       console.log('Run query button clicked');
       onRun();
     }
@@ -524,7 +578,11 @@ export function ResizableSqlEditor({
                 <DropdownMenuItem
                   onClick={() => {
                     if (editorRef.current) {
-                      editorRef.current.focus();
+                      try {
+                        editorRef.current.focus();
+                      } catch (error) {
+                        console.warn('Error focusing editor:', error);
+                      }
                     }
                   }}
                 >
