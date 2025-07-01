@@ -61,12 +61,9 @@ export function DatabaseConnectionStatus() {
         }
 
         if (connectionDetails) {
-          // Test the connection
+          // Test the connection using health endpoint
           try {
-            await api.post("/query", {
-              connectionId,
-              sql: "SELECT 1 as test_connection",
-            });
+            await api.get('/health');
             
             setConnectionInfo({
               ...connectionDetails,
