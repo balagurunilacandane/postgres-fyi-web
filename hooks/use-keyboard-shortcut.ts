@@ -28,7 +28,8 @@ export function useKeyboardShortcut(
     optionsRef.current = options;
   }, [callback, options]);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+  const handleKeyDown = useCallback((event: Event) => {
+    const keyboardEvent = event as KeyboardEvent;
     const opts = optionsRef.current;
     
     // Check if shortcut is enabled
@@ -43,31 +44,31 @@ export function useKeyboardShortcut(
     }
 
     // Normalize key for cross-browser compatibility
-    const normalizedKey = event.key.toLowerCase();
+    const normalizedKey = keyboardEvent.key.toLowerCase();
     const targetKey = opts.key.toLowerCase();
     
     // Handle Enter key variations
     const isEnterKey = targetKey === 'enter' && 
-                      (normalizedKey === 'enter' || event.keyCode === 13 || event.which === 13);
+                      (normalizedKey === 'enter' || keyboardEvent.keyCode === 13 || keyboardEvent.which === 13);
     
     // Check key match
     if (!isEnterKey && normalizedKey !== targetKey) return;
 
     // Check modifier keys with cross-platform support
     const needsCtrlOrCmd = opts.ctrlKey || opts.metaKey;
-    const hasCtrlOrCmd = event.ctrlKey || event.metaKey;
+    const hasCtrlOrCmd = keyboardEvent.ctrlKey || keyboardEvent.metaKey;
     
     if (needsCtrlOrCmd && !hasCtrlOrCmd) return;
-    if (opts.shiftKey && !event.shiftKey) return;
-    if (opts.altKey && !event.altKey) return;
+    if (opts.shiftKey && !keyboardEvent.shiftKey) return;
+    if (opts.altKey && !keyboardEvent.altKey) return;
 
     // Prevent default browser behavior
     if (opts.preventDefault !== false) {
-      event.preventDefault();
+      keyboardEvent.preventDefault();
     }
     
     if (opts.stopPropagation !== false) {
-      event.stopPropagation();
+      keyboardEvent.stopPropagation();
     }
 
     // Execute callback
