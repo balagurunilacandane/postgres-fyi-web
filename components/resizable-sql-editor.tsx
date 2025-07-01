@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
+import { useCtrlEnter, KeyUtils } from "@/hooks/use-keyboard-shortcut";
 import { v4 as uuidv4 } from "uuid";
 
 export interface SavedQuery {
@@ -54,6 +55,7 @@ export function ResizableSqlEditor({
   const { theme, resolvedTheme } = useTheme();
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [queryName, setQueryName] = useState("");
@@ -64,6 +66,22 @@ export function ResizableSqlEditor({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Enhanced Ctrl+Enter hook with editor focus detection
+  useCtrlEnter(
+    () => {
+      console.log('Ctrl+Enter triggered via hook');
+      if (onRun && !loading && !readOnly) {
+        onRun();
+        toast({
+          title: "Query Executed",
+          description: "Running your SQL query...",
+        });
+      }
+    },
+    true, // enabled
+    editorContainerRef.current // require focus on editor container
+  );
 
   // Calculate available height for editor
   useEffect(() => {
@@ -214,18 +232,18 @@ export function ResizableSqlEditor({
       },
     });
 
-    // Add keyboard shortcuts with proper key codes
-    editor.addCommand(
+    // Enhanced Monaco Editor keyboard shortcuts
+    const runQueryCommand = editor.addCommand(
       monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
       () => {
-        console.log('Ctrl+Enter pressed in editor');
-        if (onRun && !loading) {
+        console.log('Monaco Ctrl+Enter command triggered');
+        if (onRun && !loading && !readOnly) {
           onRun();
         }
       }
     );
 
-    editor.addCommand(
+    const saveQueryCommand = editor.addCommand(
       monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
       (e: any) => {
         e?.preventDefault?.();
@@ -233,34 +251,43 @@ export function ResizableSqlEditor({
       }
     );
 
-    // Add global keyboard event listener as backup
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if the editor has focus
-      const editorDomNode = editor.getDomNode();
-      const isEditorFocused = editorDomNode && editorDomNode.contains(document.activeElement);
-      
-      if (isEditorFocused && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    // Additional cross-browser keyboard event handling
+    const handleEditorKeyDown = (e: any) => {
+      // Handle Ctrl+Enter with multiple detection methods
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.keyCode === 13)) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Global Ctrl+Enter handler triggered');
-        if (onRun && !loading) {
+        console.log('Editor keydown Ctrl+Enter detected');
+        if (onRun && !loading && !readOnly) {
           onRun();
         }
       }
       
-      if (isEditorFocused && (e.ctrlKey || e.metaKey) && e.key === 's') {
+      // Handle Ctrl+S
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.keyCode === 83)) {
         e.preventDefault();
         e.stopPropagation();
         handleSaveQuery();
       }
     };
 
-    // Add event listener to document
-    document.addEventListener('keydown', handleKeyDown, true);
+    // Add event listener to editor's DOM node
+    const editorDomNode = editor.getDomNode();
+    if (editorDomNode) {
+      editorDomNode.addEventListener('keydown', handleEditorKeyDown, true);
+    }
 
     // Store cleanup function
     editor._keydownCleanup = () => {
-      document.removeEventListener('keydown', handleKeyDown, true);
+      if (editorDomNode) {
+        editorDomNode.removeEventListener('keydown', handleEditorKeyDown, true);
+      }
+      if (runQueryCommand) {
+        runQueryCommand.dispose();
+      }
+      if (saveQueryCommand) {
+        saveQueryCommand.dispose();
+      }
     };
 
     // Focus the editor after mount
@@ -419,6 +446,14 @@ export function ResizableSqlEditor({
     }
   };
 
+  // Enhanced run query handler with feedback
+  const handleRunQuery = () => {
+    if (onRun && !loading && !readOnly) {
+      console.log('Run query button clicked');
+      onRun();
+    }
+  };
+
   if (!mounted) {
     return (
       <div
@@ -437,8 +472,8 @@ export function ResizableSqlEditor({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
-              onClick={onRun}
-              disabled={loading || !value.trim()}
+              onClick={handleRunQuery}
+              disabled={loading || !value.trim() || readOnly}
               size="sm"
               className="gap-2"
             >
@@ -450,7 +485,7 @@ export function ResizableSqlEditor({
               Run Query
             </Button>
             <span className="text-xs text-muted-foreground">
-              Ctrl+Enter to run
+              {KeyUtils.getShortcutText('Enter')} to run
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -515,8 +550,10 @@ export function ResizableSqlEditor({
       {/* Editor Container - Flexible Height with Constraints */}
       <div className="flex-1 min-h-0 mt-4">
         <div 
-          className="border rounded-md overflow-hidden h-full"
+          ref={editorContainerRef}
+          className="border rounded-md overflow-hidden h-full focus-within:ring-2 focus-within:ring-primary/20"
           style={{ height: editorHeight > 0 ? `${editorHeight}px` : '100%' }}
+          tabIndex={-1}
         >
           <Editor
             height="100%"
