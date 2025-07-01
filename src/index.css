@@ -1,0 +1,339 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Enhanced scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted/30;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-md;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
+
+::-webkit-scrollbar-corner {
+  @apply bg-muted/30;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced focus styles */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Glass morphism effect */
+.glass {
+  @apply bg-background/80 backdrop-blur-md border border-border/50;
+}
+
+/* Improved table styling */
+.table-container {
+  @apply border border-border rounded-lg overflow-hidden bg-card;
+}
+
+.table-container table {
+  @apply w-full;
+}
+
+.table-container th {
+  @apply bg-muted/50 font-semibold text-left p-3 border-b border-border;
+}
+
+.table-container td {
+  @apply p-3 border-b border-border/50;
+}
+
+.table-container tr:hover {
+  @apply bg-muted/30;
+}
+
+/* Monaco editor theme integration */
+.monaco-editor {
+  @apply rounded-md;
+}
+
+.monaco-editor .margin {
+  @apply bg-muted/20;
+}
+
+/* Enhanced button hover effects */
+.btn-hover-lift {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.btn-hover-lift:hover {
+  @apply transform -translate-y-0.5 shadow-lg;
+}
+
+/* Status indicators */
+.status-indicator {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.status-indicator.success {
+  @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+}
+
+.status-indicator.error {
+  @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+}
+
+.status-indicator.warning {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+}
+
+.status-indicator.info {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
+}
+
+/* Enhanced data table styling with fixed heights and alternating colors */
+.data-table {
+  @apply w-full border-collapse;
+}
+
+.data-table th {
+  @apply h-12 px-4 text-left font-semibold bg-muted/50 border-b border-border sticky top-0 z-10;
+}
+
+.data-table td {
+  height: 3em;
+  @apply px-4 py-2 border-b border-border/50 align-middle;
+  vertical-align: middle;
+}
+
+/* Alternating row colors for better readability */
+.data-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+/* Dark mode alternating colors */
+.dark .data-table tbody tr:nth-child(odd) {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.dark .data-table tbody tr:nth-child(even) {
+  background-color: hsl(var(--background));
+}
+
+/* Hover effects that work with alternating colors */
+.data-table tbody tr:hover {
+  @apply bg-muted/50 transition-colors;
+}
+
+/* Ensure consistent cell content handling */
+.table-cell-content {
+  @apply max-w-xs truncate;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.table-cell-json {
+  @apply whitespace-pre-wrap break-all text-xs font-mono bg-muted/50 p-2 rounded max-w-xs;
+  max-height: 2.5em;
+  overflow-y: auto;
+  line-height: 1.2;
+}
+
+/* Fixed layout containers for proper height management */
+.layout-container {
+  @apply h-screen w-full flex flex-col;
+}
+
+.sidebar-container {
+  @apply flex-shrink-0;
+}
+
+.main-content-container {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.status-bar-container {
+  @apply border-b border-border bg-card;
+}
+
+.page-content-container {
+  @apply flex-1 overflow-hidden;
+}
+
+/* Resizable query layout styles */
+.resizable-query-container {
+  @apply h-full flex flex-col bg-background;
+}
+
+.query-editor-section {
+  @apply border-b border-border bg-card flex flex-col;
+}
+
+.resize-handle {
+  @apply relative h-2 bg-border hover:bg-primary/20 cursor-row-resize transition-colors flex items-center justify-center;
+}
+
+.resize-handle.resizing {
+  @apply bg-primary/30;
+}
+
+.resize-handle-indicator {
+  @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity;
+}
+
+.resize-handle-line {
+  @apply absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-px bg-border;
+}
+
+.results-section {
+  @apply flex flex-col min-h-0;
+}
+
+/* Table page specific styles */
+.table-page-header {
+  @apply p-6 border-b border-border bg-card flex-shrink-0;
+}
+
+.table-page-content {
+  @apply flex-1 min-h-0 p-6;
+}
+
+/* Monaco Editor container constraints */
+.monaco-editor-container {
+  @apply h-full overflow-hidden;
+}
+
+.monaco-editor-container .monaco-editor {
+  @apply h-full;
+}
+
+/* Responsive height adjustments */
+@media (max-height: 600px) {
+  .query-editor-section {
+    min-height: 200px;
+  }
+}
+
+@media (max-height: 400px) {
+  .query-editor-section {
+    min-height: 150px;
+  }
+}
+
+/* Smooth resize transitions */
+.resizable-panel {
+  transition: height 0.1s ease-out;
+}
+
+/* Prevent text selection during resize */
+.resizing * {
+  user-select: none;
+  pointer-events: none;
+}
+
+.resizing .resize-handle {
+  pointer-events: auto;
+}
