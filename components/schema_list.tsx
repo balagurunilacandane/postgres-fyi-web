@@ -4,16 +4,25 @@ import React, { useEffect, useState } from "react";
 import api from "@/utils/axiosInstance";
 import { useRouter } from "next/navigation";
 
-// Simple skeleton loader component
+// Modern skeleton loader component
 function SchemaListSkeleton() {
   return (
-    <ul className="pl-5">
-      {[1, 2, 3, 4].map((i) => (
-        <li key={i} className="mb-1">
-          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-        </li>
-      ))}
-    </ul>
+    <div className="p-4 space-y-4">
+      <div className="h-6 bg-muted rounded w-20 animate-pulse" />
+      <div className="space-y-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-card border border-border rounded-lg p-3 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-4 bg-muted rounded" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted/70 rounded w-1/2" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

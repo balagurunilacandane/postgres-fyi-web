@@ -15,6 +15,21 @@ interface ConnectionInfo {
   lastConnected?: number;
 }
 
+function ConnectionStatusSkeleton() {
+  return (
+    <div className="bg-card border-b border-border px-4 py-3">
+      <div className="flex items-center gap-4 animate-pulse">
+        <div className="h-4 w-4 bg-muted rounded" />
+        <div className="h-4 bg-muted rounded w-24" />
+        <div className="h-4 bg-muted rounded w-32" />
+        <div className="h-4 bg-muted rounded w-20" />
+        <div className="h-4 bg-muted rounded w-16" />
+        <div className="ml-auto h-3 bg-muted rounded w-32" />
+      </div>
+    </div>
+  );
+}
+
 export function DatabaseConnectionStatus() {
   const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,14 +99,7 @@ export function DatabaseConnectionStatus() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="h-4 w-4 bg-muted animate-pulse rounded" />
-          <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-        </div>
-      </div>
-    );
+    return <ConnectionStatusSkeleton />;
   }
 
   if (!connectionInfo) {
