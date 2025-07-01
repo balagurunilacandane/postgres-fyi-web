@@ -214,40 +214,59 @@ export function ResizableSqlEditor({
       },
     });
 
-    // Add keyboard shortcuts - Fixed implementation
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      if (onRun && !loading) {
-        onRun();
-      }
-    });
-
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, (e: any) => {
-      e?.preventDefault?.();
-      handleSaveQuery();
-    });
-
-    // Also add global keyboard event listener as backup
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (onRun && !loading && editor.hasTextFocus()) {
+    // Add keyboard shortcuts with proper key codes
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+      () => {
+        console.log('Ctrl+Enter pressed in editor');
+        if (onRun && !loading) {
           onRun();
         }
       }
+    );
+
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+      (e: any) => {
+        e?.preventDefault?.();
+        handleSaveQuery();
+      }
+    );
+
+    // Add global keyboard event listener as backup
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if the editor has focus
+      const editorDomNode = editor.getDomNode();
+      const isEditorFocused = editorDomNode && editorDomNode.contains(document.activeElement);
+      
+      if (isEditorFocused && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Global Ctrl+Enter handler triggered');
+        if (onRun && !loading) {
+          onRun();
+        }
+      }
+      
+      if (isEditorFocused && (e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSaveQuery();
+      }
     };
 
-    // Add event listener to the editor's DOM element
-    const editorDomNode = editor.getDomNode();
-    if (editorDomNode) {
-      editorDomNode.addEventListener('keydown', handleKeyDown);
-    }
+    // Add event listener to document
+    document.addEventListener('keydown', handleKeyDown, true);
 
     // Store cleanup function
     editor._keydownCleanup = () => {
-      if (editorDomNode) {
-        editorDomNode.removeEventListener('keydown', handleKeyDown);
-      }
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
+
+    // Focus the editor after mount
+    setTimeout(() => {
+      editor.focus();
+    }, 100);
   };
 
   // Cleanup keyboard listeners when component unmounts
