@@ -41,7 +41,6 @@ interface ResizableSqlEditorProps {
   onRun?: () => void;
   loading?: boolean;
   readOnly?: boolean;
-  onSaveSuccess?: () => void;
 }
 
 export function ResizableSqlEditor({
@@ -50,7 +49,6 @@ export function ResizableSqlEditor({
   onRun,
   loading = false,
   readOnly = false,
-  onSaveSuccess,
 }: ResizableSqlEditorProps) {
   const { theme, resolvedTheme } = useTheme();
   const editorRef = useRef<any>(null);
@@ -487,7 +485,6 @@ export function ResizableSqlEditor({
 
       setShowSaveDialog(false);
       setQueryName("");
-      onSaveSuccess?.();
     } catch (error) {
       console.error("Failed to save query:", error);
       toast({

@@ -100,12 +100,7 @@ function generateColumnsFromFields(fields: TableField[]): ColumnDef<TableRow>[] 
   ];
 }
 
-interface QueryPageProps {
-  onQuerySaved?: () => void;
-  onLoadQuery?: (query: string) => void;
-}
-
-export default function QueryPage({ onQuerySaved }: QueryPageProps) {
+export default function QueryPage() {
   const [query, setQuery] = useState(""); // Start with empty query
   const [result, setResult] = useState<TableRow[]>([]);
   const [fields, setFields] = useState<TableField[]>([]);
@@ -231,11 +226,6 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
     setOffset(0);
     setGlobalFilter("");
     await fetchQueryData(false);
-  };
-
-  // Handle save success to refresh sidebar
-  const handleSaveSuccess = () => {
-    onQuerySaved?.();
   };
 
   // Infinite scroll handler
@@ -368,7 +358,6 @@ export default function QueryPage({ onQuerySaved }: QueryPageProps) {
               onChange={setQuery}
               onRun={handleRunQuery}
               loading={loading}
-              onSaveSuccess={handleSaveSuccess}
             />
           </div>
         </div>

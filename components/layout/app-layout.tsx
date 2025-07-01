@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { ConnectionsSidebar } from "@/components/connections-sidebar";
 import { DatabaseConnectionStatus } from "@/components/database-connection-status";
@@ -20,12 +20,20 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <>{children}</>;
   }
 
-  const handleQuerySaved = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
+  // Listen for query saved events to refresh sidebar
+  useEffect(() => {
+    const handleQuerySaved = () => {
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('querySaved', handleQuerySaved);
+    return () => {
+      window.removeEventListener('querySaved', handleQuerySaved);
+    };
+  }, []);
 
   const handleLoadQuery = (query: string) => {
-    // This will be passed down to query page components
+    // Dispatch event for query page to listen to
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('loadQuery', { detail: query }));
     }
@@ -48,10 +56,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         
         {/* Page Content */}
         <div className="flex-1 overflow-hidden">
-          {React.cloneElement(children as React.ReactElement, {
-            onQuerySaved: handleQuerySaved,
-            onLoadQuery: handleLoadQuery,
-          })}
+          {children}
         </div>
       </div>
     </div>
